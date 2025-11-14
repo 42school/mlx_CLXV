@@ -18,9 +18,9 @@ static void	*mlx_error(mlx_t *mlx, char *msg)
       gpup.gpu = mlx->gpu;
       bep.backend = mlx->backend;
       if (mlx->gpu)
-	MLX_EXISTS_I(mlx_gpu_hooks[mlx->gpu_type].release, &gpup);
+		MLX_EXISTS_I(mlx_gpu_hooks[mlx->gpu_type].release, &gpup);
       if (mlx->backend)
-	MLX_EXISTS_I(mlx_backend_hooks[mlx->backend_type].release, &bep);
+		MLX_EXISTS_I(mlx_backend_hooks[mlx->backend_type].release, &bep);
       free(mlx);
     }
   return (NULL);
@@ -62,12 +62,16 @@ void	*mlx_init()
   mlx->backend_type = MLX_BACKEND;
   mlx->gpu_type = MLX_GPU;
   mlx->backend = MLX_EXISTS_P(mlx_backend_hooks[mlx->backend_type].init, &be);
+  if (mlx->backend == NULL)
+	return (mlx_error(mlx, "Can't initialize backend"));
   mlx->screen_width = be.size.width;
   mlx->screen_height = be.size.height;
   mlx->gpu = MLX_EXISTS_P(mlx_gpu_hooks[mlx->gpu_type].init, NULL);
   mlx->loop_hook = NULL;
   mlx->loop_hook_param = NULL;
   mlx->loop_ever = 0;
+  if (mlx->gpu == NULL)
+	return (mlx_error(mlx, "Can't initialize gpu"));
   return (mlx);
 }
 
