@@ -1,7 +1,7 @@
 
 #include	<stdlib.h>
 #include	<stdio.h>
-#include	<strings.h>
+#include	<string.h>
 
 #include	"mlx_internal.h"
 
@@ -224,7 +224,7 @@ int	mlx___vulkan_check_extensions(char **req_ext, int nb_req)
 	  j = nb;
 	  while (j--)
 		{
-		  if (strcmp(req_ext[i], ext[j].layerName) == 0)
+		  if (strcmp(req_ext[i], ext[j].extensionName) == 0)
 			found = 1;
         }
 	  if (found == 0)
