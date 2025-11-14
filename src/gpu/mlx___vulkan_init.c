@@ -10,9 +10,6 @@
 #include	"mlx___vulkan_internal.h"
 #include	"mlx___vulkan_shaders_code.h"
 
-#ifndef VK_DEBUG_LAYER
-# define VK_DEBUG_LAYER	0
-#endif
 
 unsigned char mlx___vulkan_order[5] = { 4, 1, 0, 2, 3 };
 
