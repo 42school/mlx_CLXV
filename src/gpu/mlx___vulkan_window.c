@@ -33,55 +33,56 @@ static void	*mlx___vulkan_window_error(mlx___vulkan_t *vk,
       vkDeviceWaitIdle(vk->vk_device); // pas subtil ...
 
       if (vkwin->pixel_put_img)
-	mlx___vulkan_img_error(vk, vkwin->pixel_put_img, NULL, VK_SUCCESS);
+		mlx___vulkan_img_error(vk, vkwin->pixel_put_img, NULL, VK_SUCCESS);
       if (vkwin->back_img)
-	mlx___vulkan_img_error(vk, vkwin->back_img, NULL, VK_SUCCESS);
+		mlx___vulkan_img_error(vk, vkwin->back_img, NULL, VK_SUCCESS);
 
       i = 0;
       while (i < VK_NB_DRAW)
-	{
-	  vkUnmapMemory(vk->vk_device,
-			vkwin->draw_list[i].uniform_device_memory);
-	  vkDestroyBuffer(vk->vk_device,
-			  vkwin->draw_list[i].uniform_buffer, NULL);
-	  vkFreeMemory(vk->vk_device,
-		       vkwin->draw_list[i].uniform_device_memory, NULL);
-	  i ++;
-	}
+		{
+		  if (vkwin->draw_list[i].uniform)
+			vkUnmapMemory(vk->vk_device,
+						  vkwin->draw_list[i].uniform_device_memory);
+		  vkDestroyBuffer(vk->vk_device,
+						  vkwin->draw_list[i].uniform_buffer, NULL);
+		  vkFreeMemory(vk->vk_device,
+					   vkwin->draw_list[i].uniform_device_memory, NULL);
+		  i ++;
+		}
       vkDestroyDescriptorPool(vk->vk_device, vkwin->descriptor_pool, NULL);
 
       i = 0;
       while (i < VK_NB_FRAMES)
-	{
-	  vkDestroyFence(vk->vk_device, vkwin->frames[i].fence[0], NULL);
-	  i ++;
-        }
+		{
+		  vkDestroyFence(vk->vk_device, vkwin->frames[i].fence[0], NULL);
+		  i ++;
+		}
 
       vkDestroyPipeline(vk->vk_device, vkwin->pipeline, NULL);
 
       if (vkwin->swch_images)
-	{
-	  i = 0;
-	  while (i < vkwin->swch_images_nb)
-	    {
-	      vkDestroyFramebuffer(vk->vk_device,
-				   vkwin->swch_images[i].img_fb, NULL);
-	      vkDestroyImageView(vk->vk_device,
-				 vkwin->swch_images[i].image_view, NULL);
-	      i ++;
-	    }
-	  i = 3*(vkwin->swch_images_nb+1);
-	  while (i--)
-	    vkDestroySemaphore(vk->vk_device, vkwin->swch_sema[i], NULL);
-	  free(vkwin->swch_sema);
-	  free(vkwin->swch_images);
-	  free(vkwin->swch_fence);
-	}
+		{
+		  i = 0;
+		  while (i < vkwin->swch_images_nb)
+			{
+			  vkDestroyFramebuffer(vk->vk_device,
+								   vkwin->swch_images[i].img_fb, NULL);
+			  vkDestroyImageView(vk->vk_device,
+								 vkwin->swch_images[i].image_view, NULL);
+			  i ++;
+			}
+		  i = 3*(vkwin->swch_images_nb+1);
+		  while (i--)
+			vkDestroySemaphore(vk->vk_device, vkwin->swch_sema[i], NULL);
+		  free(vkwin->swch_sema);
+		  free(vkwin->swch_images);
+		  free(vkwin->swch_fence);
+		}
 
       vkDestroyRenderPass(vk->vk_device, vkwin->render_pass, NULL);
       vkDestroySwapchainKHR(vk->vk_device, vkwin->swap_chain, NULL);
       if (vkwin->surf_fmt)
-	free(vkwin->surf_fmt);
+		free(vkwin->surf_fmt);
       vkDestroySurfaceKHR(vk->instance, vkwin->surface, NULL);
 
       vk->win_ref[vkwin->ref_idx].active = 0;

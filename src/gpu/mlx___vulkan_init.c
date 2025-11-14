@@ -10,7 +10,9 @@
 #include	"mlx___vulkan_internal.h"
 #include	"mlx___vulkan_shaders_code.h"
 
-#define DEBUG_LAYER	1
+#ifndef VK_DEBUG_LAYER
+# define VK_DEBUG_LAYER	1
+#endif
 
 unsigned char mlx___vulkan_order[5] = { 4, 1, 0, 2, 3 };
 
@@ -166,6 +168,76 @@ int	mlx___vulkan_ref_win_add(mlx___vulkan_t *vk, mlx___vulkan_win_t *win)
 }
 
 
+int	mlx___vulkan_check_layers(char **req_layers, int nb_req)
+{
+  uint32_t 			nb;
+  VkLayerProperties *layers;
+  int 				i;
+  int				j;
+  int				found;
+
+  nb = 0;
+  vkEnumerateInstanceLayerProperties(&nb, NULL);
+  if ((layers = malloc(sizeof(VkLayerProperties) * nb)) == NULL)
+	return (1);
+  vkEnumerateInstanceLayerProperties(&nb, layers);
+
+  i = nb_req;
+  while (i--)
+	{
+	  found = 0;
+	  j = nb;
+	  while (j--)
+		{
+		  if (strcmp(req_layers[i], layers[j].layerName) == 0)
+			found = 1;
+        }
+	  if (found == 0)
+		{
+		  free(layers);
+		  return (1);
+		}
+    }
+  free(layers);
+  return (0);
+}
+
+
+int	mlx___vulkan_check_extensions(char **req_ext, int nb_req)
+{
+  uint32_t				nb;
+  VkExtensionProperties *ext;
+  int 					i;
+  int					j;
+  int					found;
+
+  nb = 0;
+  vkEnumerateInstanceExtensionProperties(NULL, &nb, NULL);
+  if ((ext = malloc(sizeof(VkExtensionProperties) * nb)) == NULL)
+	return (1);
+  vkEnumerateInstanceExtensionProperties(NULL, &nb, ext);
+
+  i = nb_req;
+  while (i--)
+	{
+	  found = 0;
+	  j = nb;
+	  while (j--)
+		{
+		  if (strcmp(req_ext[i], ext[j].layerName) == 0)
+			found = 1;
+        }
+	  if (found == 0)
+		{
+		  free(ext);
+		  return (1);
+		}
+    }
+  free(ext);
+  return (0);
+}
+
+
 
 void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
 {
@@ -219,7 +291,7 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
   inst_crea_info.pApplicationInfo = &(mxvk->app_info);
   inst_crea_info.enabledExtensionCount = nb_extensions;
   inst_crea_info.ppEnabledExtensionNames = mxvk->inst_extensions;
-#ifdef DEBUG_LAYER
+#ifdef VK_DEBUG_LAYER
   mxvk->validation_layer[0] = "VK_LAYER_KHRONOS_validation";
   inst_crea_info.enabledLayerCount = 1;
   inst_crea_info.ppEnabledLayerNames = mxvk->validation_layer;
@@ -227,6 +299,12 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
   inst_crea_info.enabledLayerCount = 0;
   inst_crea_info.ppEnabledLayerNames = NULL;
 #endif
+
+  if (mlx___vulkan_check_extensions(mxvk->inst_extensions, nb_extensions))
+	return (mlx___vulkan_init_error(mxvk, "Missing required Vulkan extensions", vkerr));
+
+  if (mlx___vulkan_check_layers(mxvk->validation_layer, inst_crea_info.enabledLayerCount))
+	return (mlx___vulkan_init_error(mxvk, "Missing Vulkan validation layers", vkerr));
   
   if ((vkerr = vkCreateInstance(&inst_crea_info, NULL, &(mxvk->instance))) !=
       VK_SUCCESS)

@@ -30,11 +30,12 @@ void	*mlx___vulkan_img_error(mlx___vulkan_t *vk, mlx___vulkan_img_t *img,
       vkDestroyImageView(vk->vk_device, img->image_view, NULL);
       i = VK_NB_FRAMES;
       while (i--)
-	{
-	  vkUnmapMemory(vk->vk_device, img->staging_device_memory[i]);
-	  vkDestroyBuffer(vk->vk_device, img->staging_buffer[i], NULL);
-	  vkFreeMemory(vk->vk_device, img->staging_device_memory[i], NULL);
-	}
+		{
+		  if (img->staging_data[i])
+			vkUnmapMemory(vk->vk_device, img->staging_device_memory[i]);
+		  vkDestroyBuffer(vk->vk_device, img->staging_buffer[i], NULL);
+		  vkFreeMemory(vk->vk_device, img->staging_device_memory[i], NULL);
+		}
       vkFreeMemory(vk->vk_device, img->img_device_memory, NULL);
       vkDestroyImage(vk->vk_device, img->image, NULL);
       vk->img_ref[img->ref_idx].active = 0;
