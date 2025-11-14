@@ -28,8 +28,8 @@ typedef struct						mlx___vulkan_s
 {
   VkInstance						instance;
   VkApplicationInfo					app_info;
-  char								**inst_extensions;
-  char								**validation_layer;
+  const char						**inst_extensions;
+  const char						**validation_layer;
   unsigned int						devices_nb;
   VkPhysicalDevice					*devices;
   VkPhysicalDeviceProperties		*devices_prop;

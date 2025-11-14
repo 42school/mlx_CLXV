@@ -168,7 +168,7 @@ int	mlx___vulkan_ref_win_add(mlx___vulkan_t *vk, mlx___vulkan_win_t *win)
 }
 
 
-int	mlx___vulkan_check_layers(char **req_layers, int nb_req)
+int	mlx___vulkan_check_layers(const char **req_layers, int nb_req)
 {
   uint32_t 			nb;
   VkLayerProperties *layers;
@@ -203,7 +203,7 @@ int	mlx___vulkan_check_layers(char **req_layers, int nb_req)
 }
 
 
-int	mlx___vulkan_check_extensions(char **req_ext, int nb_req)
+int	mlx___vulkan_check_extensions(const char **req_ext, int nb_req)
 {
   uint32_t				nb;
   VkExtensionProperties *ext;
@@ -301,10 +301,10 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
 #endif
 
   if (mlx___vulkan_check_extensions(mxvk->inst_extensions, nb_extensions))
-	return (mlx___vulkan_init_error(mxvk, "Missing required Vulkan extensions", vkerr));
+	return (mlx___vulkan_init_error(mxvk, "Missing required Vulkan extensions", VK_ERROR_UNKNOWN));
 
   if (mlx___vulkan_check_layers(mxvk->validation_layer, inst_crea_info.enabledLayerCount))
-	return (mlx___vulkan_init_error(mxvk, "Missing Vulkan validation layers", vkerr));
+	return (mlx___vulkan_init_error(mxvk, "Missing Vulkan validation layers", VK_ERROR_UNKNOWN));
   
   if ((vkerr = vkCreateInstance(&inst_crea_info, NULL, &(mxvk->instance))) !=
       VK_SUCCESS)
