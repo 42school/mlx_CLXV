@@ -9,7 +9,7 @@ The set of features is limited, on purpose, and is not meant to be extended. The
 ## Installation
 The current MinilibX version is designed to work under Linux, and requires the runtime and developper packages: vulkan, xcb, xcb-keysyms, bsd, zip.
 
-Just use `make` to check the configuration, compile the library, and package the Python module.
+Just use `make` to check the configuration, compile the library, and package the Python module. Edit the Makefile in order to enable the Vulkan validation layers.
 
 ## Usage
 Read the associated manuals in the `man/` directory, starting with `man man/man3/mlx.3`
