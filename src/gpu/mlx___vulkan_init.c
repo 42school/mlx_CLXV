@@ -25,30 +25,34 @@ static void	*mlx___vulkan_init_error(mlx___vulkan_t *mxvk,
     fprintf(stderr, "Mlx - Vk: %x - %s\n", (int)err, msg);
   if (mxvk)
     {
-      vkDeviceWaitIdle(mxvk->vk_device); // pas subtil ...
+	  if (mxvk->vk_device)
+		{
+		  vkDeviceWaitIdle(mxvk->vk_device); // pas subtil ...
       
-      vkDestroyPipelineLayout(mxvk->vk_device, mxvk->pipeline_layout, NULL);
-      vkDestroyDescriptorSetLayout(mxvk->vk_device,
-				   mxvk->descriptor_set_layout, NULL);
-      vkDestroyShaderModule(mxvk->vk_device, mxvk->shader_frag, NULL);
-      vkDestroyShaderModule(mxvk->vk_device, mxvk->shader_vert, NULL);
-      vkDestroyCommandPool(mxvk->vk_device, mxvk->command_pool, NULL);
-      vkDestroyDevice(mxvk->vk_device, NULL);
-      if (mxvk->devices_prop)
-	free(mxvk->devices_prop);
-      if (mxvk->devices)
-	free(mxvk->devices);
-      vkDestroyInstance(mxvk->instance, NULL);
-      if (mxvk->dev_extensions)
-	free(mxvk->dev_extensions);
-      if (mxvk->validation_layer)
-	free(mxvk->validation_layer);
-      if (mxvk->inst_extensions)
-	free(mxvk->inst_extensions);
-      if (mxvk->win_ref)
-	free(mxvk->win_ref);
+		  vkDestroyPipelineLayout(mxvk->vk_device, mxvk->pipeline_layout, NULL);
+		  vkDestroyDescriptorSetLayout(mxvk->vk_device,
+									   mxvk->descriptor_set_layout, NULL);
+		  vkDestroyShaderModule(mxvk->vk_device, mxvk->shader_frag, NULL);
+		  vkDestroyShaderModule(mxvk->vk_device, mxvk->shader_vert, NULL);
+		  vkDestroyCommandPool(mxvk->vk_device, mxvk->command_pool, NULL);
+		  vkDestroyDevice(mxvk->vk_device, NULL);
+		}
+	  if (mxvk->devices_prop)
+		free(mxvk->devices_prop);
+	  if (mxvk->devices)
+		free(mxvk->devices);
+	  if (mxvk->instance)
+		vkDestroyInstance(mxvk->instance, NULL);
+	  if (mxvk->dev_extensions)
+		free(mxvk->dev_extensions);
+	  if (mxvk->validation_layer)
+		free(mxvk->validation_layer);
+	  if (mxvk->inst_extensions)
+		free(mxvk->inst_extensions);
+	  if (mxvk->win_ref)
+		free(mxvk->win_ref);
       if (mxvk->img_ref)
-	free(mxvk->img_ref);
+		free(mxvk->img_ref);
       free(mxvk);
     }
   return (NULL);
