@@ -1,0 +1,121 @@
+.TH MiniLibX 3 "September 19, 2002"
+.SH NAME
+MiniLibX - Extra functions
+.SH SYNOPSYS
+
+.nf
+.I int
+.fi
+.B mlx_mouse_hide
+(
+.I void *mlx_ptr
+);
+
+.nf
+.I int
+.fi
+.B mlx_mouse_show
+(
+.I void *mlx_ptr
+);
+
+.nf
+.I int
+.fi
+.B mlx_mouse_move
+(
+.I void *mlx_ptr, int x, int y
+);
+
+.nf
+.I int
+.fi
+.B mlx_mouse_get_pos
+(
+.I void *win_ptr, int *x, int *y
+);
+
+.nf
+.I int
+.fi
+.B mlx_do_key_autorepeatoff
+(
+.I void *mlx_ptr
+);
+
+.nf
+.I int
+.fi
+.B mlx_do_key_autorepeaton
+(
+.I void *mlx_ptr
+);
+
+.nf
+.I int
+.fi
+.B mlx_get_screen_size
+(
+.I void *mlx_ptr, unsigned int *width, unsigned int *height
+);
+
+.nf
+.I int
+.fi
+.B mlx_do_sync
+(
+.I void *mlx_ptr
+);
+
+.nf
+.I int
+.fi
+.B mlx_sync
+(
+.I void *mlx_ptr, int cmd, void *param
+);
+
+.SH MOUSE EXTRA FUNCTIONS
+
+It is possible to show / hide the mouse, and get its current position without user click or
+force its position inside a window.
+
+.SH KEYBOARD EXTRA FUNCTIONS
+
+The auto-repeat mode of the keyboard can be controlled. By default, auto-repeat is on:
+multiple "key pressed" events are generated every second until the key is released.
+
+.SH SCREEN EXTRA FUNCTION
+
+It is possible to retrieve the size of the current screen, even before the first
+window is created.
+
+.SH FLUSH AND SYNC FUNCTIONS
+
+The
+.B mlx_do_sync
+function will flush the pending commands to the graphic subsystems, ensuring nothing
+is cached on your software's side. On return, there is no guarantee that your
+commands have been processed.
+.br
+With
+.B mlx_sync
+you have more detailed control over the synchronisation mechanisms. Three different commands
+are available:
+.br
+#define MLX_SYNC_IMAGE_WRITABLE         1
+.br
+#define MLX_SYNC_WIN_FLUSH              2
+.br
+#define MLX_SYNC_WIN_COMPLETED          3
+.br
+The third parameter
+.I param
+can be either the image identifier (command #1) or the window identifier (commands #2 and #3).
+
+
+.SH SEE ALSO
+mlx(3), mlx_new_window(3), mlx_pixel_put(3), mlx_new_image(3), mlx_loop(3)
+
+.SH AUTHOR
+Copyright ol@ - 2002-2025 - Olivier Crouzet

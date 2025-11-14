@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlx"
+version = "2.2"
+description = "A simple window interface library for students."
+readme = "README.md"
+authors = [
+  { name="ol", email="ol@42.fr" }
+]
+license = "MIT"
+dependencies = []
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mlx*"]
+
+[tool.setuptools.package-data]
+mlx = ["*.so", "docs/*", "test/*"]
