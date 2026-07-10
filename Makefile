@@ -26,17 +26,7 @@ SRC+=$(SRC_WAYLAND) $(SRC_VULKAN)
 CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_WAYLAND
 LIBS_BACKEND=-lwayland-client -lwayland-cursor -lxkbcommon
 WAYLAND_PROTOCOLS_DIR:=$(shell pkg-config --variable=pkgdatadir wayland-protocols)
-ifeq ($(WAYLAND_PROTOCOLS_DIR),)
-$(error wayland-protocols was not found by pkg-config. Install it (e.g. \
-  apt install wayland-protocols / dnf install wayland-protocols-devel / \
-  pacman -S wayland-protocols) and make sure its .pc file is on PKG_CONFIG_PATH, \
-  then re-run `pkg-config --variable=pkgdatadir wayland-protocols` to confirm)
-endif
 XDG_SHELL_XML:=$(WAYLAND_PROTOCOLS_DIR)/stable/xdg-shell/xdg-shell.xml
-ifeq ($(wildcard $(XDG_SHELL_XML)),)
-$(error xdg-shell.xml not found at $(XDG_SHELL_XML) - your wayland-protocols \
-  install looks incomplete or unusually old)
-endif
 # pointer-warp-v1 is a staging (not yet stable) protocol used for
 # mlx_mouse_move(); only wired in when the installed wayland-protocols
 # package has it and the compositor may or may not support it at
