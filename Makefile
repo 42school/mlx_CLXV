@@ -13,7 +13,7 @@
 BACKEND?=xcb
 
 NAME=libmlx.so
-SRC=src/mlx_init.c src/mlx_window.c src/mlx_image.c src/mlx_do_sync.c src/mlx_loop.c \
+SRC_GENERIC=src/mlx_init.c src/mlx_window.c src/mlx_image.c src/mlx_do_sync.c src/mlx_loop.c \
 	src/mlx_key_hook.c src/mlx_mouse_hook.c src/mlx_expose_hook.c src/mlx_loop_hook.c \
 	src/mlx_hook.c src/mlx_be_gpu_hooks.c src/mlx_xpm.c src/mlx_png.c src/mlx_string_put.c \
 	src/mlx_be_extra.c
@@ -26,9 +26,21 @@ SRC_WAYLAND=src/backend/mlx__wayland_init.c src/backend/mlx__wayland_window.c \
 	src/backend/mlx__wayland_event.c src/backend/mlx__wayland_extra.c \
 	src/backend/mlx__wayland_util.c \
 	src/backend/mlx__wayland_xdg_shell_protocol.c
+# not part of SRC_WAYLAND: only compiled in when detected, see below,
+# but always cleaned so a stale .o from an earlier detection never lingers
+SRC_WAYLAND_POINTER_WARP=src/backend/mlx__wayland_pointer_warp_protocol.c
 SRC_VULKAN=src/gpu/mlx___vulkan_init.c src/gpu/mlx___vulkan_window.c src/gpu/mlx___vulkan_draw.c \
 	src/gpu/mlx___vulkan_image.c
 
+# every object file either backend could ever produce, regardless of the
+# BACKEND this particular invocation was made with - `clean` must remove
+# all of them, or a stale .o from a previous backend silently looks
+# up-to-date to Make (it only compares timestamps, not compiler flags)
+# and never gets recompiled for the new backend
+ALL_OBJ=$(sort $(patsubst %.c,%.o,$(SRC_GENERIC) $(SRC_XCB) $(SRC_WAYLAND) \
+	$(SRC_WAYLAND_POINTER_WARP) $(SRC_VULKAN)))
+
+SRC=$(SRC_GENERIC)
 ifeq ($(BACKEND),wayland)
 SRC+=$(SRC_WAYLAND) $(SRC_VULKAN)
 CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_WAYLAND
@@ -73,9 +85,16 @@ CC=clang
 LIBS= $(LIBS_BACKEND) -lvulkan -lz
 
 
+.PHONY: all config clean re pypkg
+
 all: config $(NAME) pypkg
 
-config: configure.sh
+# .PHONY (not a real prerequisite check on configure.sh's mtime): this
+# must always actually run configure.sh, since it's the one place that
+# reports missing dependencies - a stale/skipped run here would let a
+# broken environment silently fall through to a wayland-scanner/clang
+# failure instead of configure's clear diagnostic
+config:
 	BACKEND=$(BACKEND) ./configure.sh
 
 # xdg-shell is the only Wayland protocol extension needed (window
@@ -105,6 +124,6 @@ pypkg: $(NAME) pybuild.sh
 	cp python/dist/mlx*.whl .
 
 clean:
-	rm -rf $(NAME) $(OBJ) *~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ python/src/mlx.egg-info src/backend/mlx__wayland_xdg_shell_protocol.h src/backend/mlx__wayland_xdg_shell_protocol.c src/backend/mlx__wayland_pointer_warp_protocol.h src/backend/mlx__wayland_pointer_warp_protocol.c
+	rm -rf $(NAME) $(ALL_OBJ) *~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ python/src/mlx.egg-info src/backend/mlx__wayland_xdg_shell_protocol.h src/backend/mlx__wayland_xdg_shell_protocol.c src/backend/mlx__wayland_pointer_warp_protocol.h src/backend/mlx__wayland_pointer_warp_protocol.c
 
 re: clean all
