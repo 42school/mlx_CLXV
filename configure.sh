@@ -80,7 +80,7 @@ if [ "$BACKEND" = "wayland" ]; then
     if command -v pkg-config >/dev/null 2>&1 && ! pkg-config --exists wayland-protocols; then
         echo "Checking for pkg-config module wayland-protocols... not found"
         DEPS_OK=0
-        MISSING="$MISSING\n  - pkg-config module: wayland-protocols\t\t=> wayland-protocols"
+        MISSING="$MISSING\n  - pkg-config module: wayland-protocols\t\t=> wayland-protocols-devel"
     fi
 
     # optional: only enables mlx_mouse_move(), not required to build
