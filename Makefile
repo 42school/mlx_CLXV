@@ -1,6 +1,14 @@
 # MinilibX Makefile
 # Just run `make`
 # To build the Wayland backend instead of XCB: `make BACKEND=wayland`
+#
+# If a Wayland build dependency is missing (e.g. wayland-protocols), run
+# `make BACKEND=wayland config` first to see configure.sh's diagnostic:
+# Make resolves the whole dependency graph before running any recipe, so
+# a missing package surfaces as Make's own opaque "No rule to make target"
+# error if you go straight to `make BACKEND=wayland` without configuring
+# first - same reason a plain `./configure && make` requires configure to
+# run to completion before the build starts.
 
 BACKEND?=xcb
 
