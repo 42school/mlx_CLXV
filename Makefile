@@ -10,6 +10,12 @@
 # first - same reason a plain `./configure && make` requires configure to
 # run to completion before the build starts.
 
+# set explicitly rather than relying on "first rule in the file" - the
+# Wayland-only `$(OBJ): ...header.h` prerequisite rule below expands to
+# a long list of real object filenames, which would otherwise silently
+# become the first rule (and therefore the default goal) instead of `all`
+.DEFAULT_GOAL := all
+
 BACKEND?=xcb
 
 NAME=libmlx.so
