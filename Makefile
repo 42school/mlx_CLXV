@@ -27,6 +27,15 @@ CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_WAYLAND
 LIBS_BACKEND=-lwayland-client -lwayland-cursor -lxkbcommon
 WAYLAND_PROTOCOLS_DIR:=$(shell pkg-config --variable=pkgdatadir wayland-protocols)
 XDG_SHELL_XML:=$(WAYLAND_PROTOCOLS_DIR)/stable/xdg-shell/xdg-shell.xml
+# pointer-warp-v1 is a staging (not yet stable) protocol used for
+# mlx_mouse_move(); only wired in when the installed wayland-protocols
+# package has it and the compositor may or may not support it at
+# runtime either way - mlx__wayland_extra.c falls back gracefully
+POINTER_WARP_XML:=$(WAYLAND_PROTOCOLS_DIR)/staging/pointer-warp/pointer-warp-v1.xml
+ifneq ($(wildcard $(POINTER_WARP_XML)),)
+SRC+=src/backend/mlx__wayland_pointer_warp_protocol.c
+CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_WARP
+endif
 else
 SRC+=$(SRC_XCB) $(SRC_VULKAN)
 CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_XCB
@@ -39,6 +48,9 @@ ifeq ($(BACKEND),wayland)
 # every wayland source transitively includes the generated xdg-shell
 # client header, make sure it exists before any of them gets compiled
 $(OBJ): src/backend/mlx__wayland_xdg_shell_protocol.h
+ifneq ($(wildcard $(POINTER_WARP_XML)),)
+$(OBJ): src/backend/mlx__wayland_pointer_warp_protocol.h
+endif
 endif
 
 #VK_DEBUG=-DVK_DEBUG_LAYER
@@ -67,6 +79,12 @@ src/backend/mlx__wayland_xdg_shell_protocol.h: $(XDG_SHELL_XML)
 src/backend/mlx__wayland_xdg_shell_protocol.c: $(XDG_SHELL_XML) src/backend/mlx__wayland_xdg_shell_protocol.h
 	wayland-scanner private-code $< $@
 
+src/backend/mlx__wayland_pointer_warp_protocol.h: $(POINTER_WARP_XML)
+	wayland-scanner client-header $< $@
+
+src/backend/mlx__wayland_pointer_warp_protocol.c: $(POINTER_WARP_XML) src/backend/mlx__wayland_pointer_warp_protocol.h
+	wayland-scanner private-code $< $@
+
 $(NAME): $(OBJ)
 	@echo "Building library..."
 	$(CC) -shared -o $(NAME) $(CFLAGS) $(LDFLAGS) $(OBJ) $(LIBS)
@@ -79,6 +97,6 @@ pypkg: $(NAME) pybuild.sh
 	cp python/dist/mlx*.whl .
 
 clean:
-	rm -rf $(NAME) $(OBJ) *~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ python/src/mlx.egg-info src/backend/mlx__wayland_xdg_shell_protocol.h src/backend/mlx__wayland_xdg_shell_protocol.c
+	rm -rf $(NAME) $(OBJ) *~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ python/src/mlx.egg-info src/backend/mlx__wayland_xdg_shell_protocol.h src/backend/mlx__wayland_xdg_shell_protocol.c src/backend/mlx__wayland_pointer_warp_protocol.h src/backend/mlx__wayland_pointer_warp_protocol.c
 
 re: clean all

@@ -82,6 +82,17 @@ if [ "$BACKEND" = "wayland" ]; then
         DEPS_OK=0
         MISSING="$MISSING\n  - pkg-config module: wayland-protocols\t\t=> wayland-protocols"
     fi
+
+    # optional: only enables mlx_mouse_move(), not required to build
+    if command -v pkg-config >/dev/null 2>&1; then
+        WAYLAND_PROTOCOLS_DIR=$(pkg-config --variable=pkgdatadir wayland-protocols 2>/dev/null)
+        /bin/echo -n "Checking for pointer-warp-v1 protocol (optional, for mlx_mouse_move)... "
+        if [ -n "$WAYLAND_PROTOCOLS_DIR" ] && [ -f "$WAYLAND_PROTOCOLS_DIR/staging/pointer-warp/pointer-warp-v1.xml" ]; then
+            echo "found"
+        else
+            echo "not found - mlx_mouse_move() will be unsupported on this backend"
+        fi
+    fi
 else
     check_header "xcb/xcb.h" "libxcbdevel"
     check_lib "xcb" "libxcb-devel"

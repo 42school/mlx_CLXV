@@ -10,6 +10,9 @@
 #include	<xkbcommon/xkbcommon.h>
 
 #include	"mlx__wayland_xdg_shell_protocol.h"
+#ifdef MLX_WAYLAND_HAVE_POINTER_WARP
+# include	"mlx__wayland_pointer_warp_protocol.h"
+#endif
 
 /*
 ** MLX has no notion of native Wayland event numbers (unlike X11/XCB),
@@ -57,6 +60,9 @@ typedef struct			mlx__wayland_s
   struct wl_keyboard		*keyboard;
   struct wl_output		*output;
   struct xdg_wm_base		*xdg_wm_base;
+#ifdef MLX_WAYLAND_HAVE_POINTER_WARP
+  struct wp_pointer_warp_v1	*pointer_warp;
+#endif
 
   struct xkb_context		*xkb_context;
   struct xkb_keymap		*xkb_keymap;

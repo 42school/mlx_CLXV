@@ -16,6 +16,10 @@ static void	*mlx__wayland_error(mlx__wayland_t *wl)
     {
       mlx__wayland_cursor_destroy(wl);
       mlx__wayland_seat_destroy(wl);
+#ifdef MLX_WAYLAND_HAVE_POINTER_WARP
+      if (wl->pointer_warp)
+	wp_pointer_warp_v1_destroy(wl->pointer_warp);
+#endif
       if (wl->xdg_wm_base)
 	xdg_wm_base_destroy(wl->xdg_wm_base);
       if (wl->output)
@@ -112,6 +116,14 @@ static void	mlx__wayland_registry_global(void *data,
       xdg_wm_base_add_listener(wl->xdg_wm_base,
 				&mlx__wayland_xdg_wm_base_listener, wl);
     }
+#ifdef MLX_WAYLAND_HAVE_POINTER_WARP
+  else if (strcmp(interface, wp_pointer_warp_v1_interface.name) == 0)
+    /* optional: only present on compositors implementing this
+       still-in-testing protocol (e.g. recent Mutter/KWin); absence
+       just means mlx_mouse_move() stays unsupported on this backend */
+    wl->pointer_warp = wl_registry_bind(registry, name,
+					 &wp_pointer_warp_v1_interface, 1);
+#endif
 }
 
 static void	mlx__wayland_registry_global_remove(void *data,
