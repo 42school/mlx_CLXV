@@ -49,6 +49,14 @@
 ** With Wayland, there is no such thing like Expose event, and the compositor saves
 **  the window's content.
 **
+** Two backends are available: XCB (default) and Wayland, selected at build
+**  time (see mlx_config.h / `make BACKEND=wayland`). The Wayland backend
+**  needs libwayland-client, libwayland-cursor, libxkbcommon, and the
+**  wayland-protocols package + wayland-scanner at build time.
+** Core Wayland has no pointer-warp protocol: mlx_mouse_move() always fails
+**  (-1) on the Wayland backend. mlx_do_key_autorepeatoff/on() are no-ops
+**  there too, since wl_keyboard never auto-repeats key presses itself.
+**
 */
 
 

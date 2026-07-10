@@ -275,6 +275,9 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
 #if defined MLX_BACKEND && MLX_BACKEND == MLX_BACKEND_XCB
   mxvk->inst_extensions[1] = "VK_KHR_xcb_surface"; // VK_KHR_XCB_SURFACE_EXTENSION_NAME
   nb_extensions = 2;
+#elif defined MLX_BACKEND && MLX_BACKEND == MLX_BACKEND_WAYLAND
+  mxvk->inst_extensions[1] = "VK_KHR_wayland_surface"; // VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME
+  nb_extensions = 2;
 #endif
   
   mxvk->app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;

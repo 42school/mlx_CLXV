@@ -1,0 +1,8 @@
+# build artifacts
+*.o
+*.so
+*~
+
+# generated at build time from the system's wayland-protocols package
+src/backend/mlx__wayland_xdg_shell_protocol.h
+src/backend/mlx__wayland_xdg_shell_protocol.c

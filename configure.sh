@@ -37,24 +37,63 @@ check_lib() {
     fi
 }
 
+# Function to test for a build tool
+check_tool() {
+    TOOL="$1"
+    PKG="$2"
+    /bin/echo -n "Checking for $TOOL... "
+    if command -v "$TOOL" >/dev/null 2>&1; then
+        echo "found"
+    else
+        echo "not found"
+        DEPS_OK=0
+        MISSING="$MISSING\n  - tool: $TOOL\t\t=> $PKG"
+    fi
+}
+
 # --- Vérifications ---
+
+BACKEND=${BACKEND:-xcb}
+echo "Backend: $BACKEND"
+echo
 
 check_header "vulkan/vulkan.h" "vulkan-headers"
 check_lib "vulkan" "vulkan-loader-devel"
 
-check_header "xcb/xcb.h" "libxcbdevel"
-check_lib "xcb" "libxcb-devel"
-
-check_header "xcb/xcb_keysyms.h" "xcb-util-keysyms-devel"
-check_lib "xcb-keysyms" "xcb-util-keysyms-devel"
-
-check_header "vulkan/vulkan_xcb.h" "vulkan-headers"
-
 check_header "zlib.h" "zlib-ng-compat-devel"
 check_lib "z" "zlib-ng-compat-devel"
 
-check_header "bsd/bsd.h" "libbsd-devel"
-check_lib "bsd" "libbsd-devel"
+if [ "$BACKEND" = "wayland" ]; then
+    check_header "wayland-client.h" "wayland-devel"
+    check_lib "wayland-client" "wayland-devel"
+
+    check_header "wayland-cursor.h" "wayland-devel"
+    check_lib "wayland-cursor" "wayland-devel"
+
+    check_header "xkbcommon/xkbcommon.h" "libxkbcommon-devel"
+    check_lib "xkbcommon" "libxkbcommon-devel"
+
+    check_header "vulkan/vulkan_wayland.h" "vulkan-headers"
+
+    check_tool "wayland-scanner" "wayland-scanner (often in wayland-devel or wayland-utils)"
+    check_tool "pkg-config" "pkgconf / pkg-config"
+    if command -v pkg-config >/dev/null 2>&1 && ! pkg-config --exists wayland-protocols; then
+        echo "Checking for pkg-config module wayland-protocols... not found"
+        DEPS_OK=0
+        MISSING="$MISSING\n  - pkg-config module: wayland-protocols\t\t=> wayland-protocols"
+    fi
+else
+    check_header "xcb/xcb.h" "libxcbdevel"
+    check_lib "xcb" "libxcb-devel"
+
+    check_header "xcb/xcb_keysyms.h" "xcb-util-keysyms-devel"
+    check_lib "xcb-keysyms" "xcb-util-keysyms-devel"
+
+    check_header "vulkan/vulkan_xcb.h" "vulkan-headers"
+
+    check_header "bsd/bsd.h" "libbsd-devel"
+    check_lib "bsd" "libbsd-devel"
+fi
 
 rm -f a.out
 
