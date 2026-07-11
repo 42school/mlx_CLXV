@@ -18,21 +18,23 @@
 #endif
 
 /*
-** MLX has no notion of native Wayland event numbers (unlike X11/XCB),
-** so this backend defines its own small event space instead of reusing
-** raw protocol opcodes. Advanced users relying on the generic mlx_hook()
-** with raw XCB event numbers will need this set of numbers instead when
-** running on the Wayland backend.
+** Wayland has no notion of these as numbered protocol opcodes the way
+** X11/XCB does, but mlx_hook()'s raw event-number path is inherently
+** backend-native (it forwards whatever number the student passes
+** straight to the backend) - so advanced code written against the XCB
+** numbers (e.g. mlx_hook(win, 33, 0, ...) for WM_DELETE_WINDOW) keeps
+** working unchanged on this backend too, these mirror the exact values
+** from xcb/xproto.h rather than inventing a separate numbering.
 */
-#define	MLX_WAYLAND_MAX_EVENT		8
+#define	MLX_WAYLAND_MAX_EVENT		34
 
-#define	MLX_WL_EVENT_KEY_PRESS		1
-#define	MLX_WL_EVENT_KEY_RELEASE	2
-#define	MLX_WL_EVENT_BUTTON_PRESS	3
-#define	MLX_WL_EVENT_BUTTON_RELEASE	4
-#define	MLX_WL_EVENT_MOTION		5
-#define	MLX_WL_EVENT_EXPOSE		6
-#define	MLX_WL_EVENT_CLOSE		7
+#define	MLX_WL_EVENT_KEY_PRESS		2	/* XCB_KEY_PRESS */
+#define	MLX_WL_EVENT_KEY_RELEASE	3	/* XCB_KEY_RELEASE */
+#define	MLX_WL_EVENT_BUTTON_PRESS	4	/* XCB_BUTTON_PRESS */
+#define	MLX_WL_EVENT_BUTTON_RELEASE	5	/* XCB_BUTTON_RELEASE */
+#define	MLX_WL_EVENT_MOTION		6	/* XCB_MOTION_NOTIFY */
+#define	MLX_WL_EVENT_EXPOSE		12	/* XCB_EXPOSE */
+#define	MLX_WL_EVENT_CLOSE		33	/* XCB_CLIENT_MESSAGE (WM_DELETE_WINDOW) */
 
 /* height, in pixels, of the fake title bar mlx_wm draws when the
    compositor offers no server-side decoration (see mlx_wm.c) */
