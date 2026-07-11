@@ -62,6 +62,17 @@ static const struct xdg_wm_base_listener	mlx__wayland_xdg_wm_base_listener =
   };
 
 
+static void	mlx__wayland_output_geometry(void *data, struct wl_output *o,
+					     int32_t x, int32_t y,
+					     int32_t phys_w, int32_t phys_h,
+					     int32_t subpixel,
+					     const char *make, const char *model,
+					     int32_t transform)
+{
+  (void)data; (void)o; (void)x; (void)y; (void)phys_w; (void)phys_h;
+  (void)subpixel; (void)make; (void)model; (void)transform;
+}
+
 static void	mlx__wayland_output_mode(void *data, struct wl_output *o,
 					 uint32_t flags, int32_t width,
 					 int32_t height, int32_t refresh)
@@ -77,12 +88,28 @@ static void	mlx__wayland_output_mode(void *data, struct wl_output *o,
     }
 }
 
-/* geometry/done/scale are irrelevant here (only the pixel mode is
-   needed for mlx_get_screen_size()); libwayland-client only invokes
-   the listener entries that are actually set, unset ones are skipped */
+static void	mlx__wayland_output_done(void *data, struct wl_output *o)
+{
+  (void)data; (void)o;
+}
+
+static void	mlx__wayland_output_scale(void *data, struct wl_output *o,
+					  int32_t factor)
+{
+  (void)data; (void)o; (void)factor;
+}
+
+/* libwayland-client requires every opcode valid for the bound protocol
+   version to have a non-NULL listener entry - it does NOT silently
+   skip unset ones, it logs "listener function for opcode N is NULL"
+   and aborts. geometry/done/scale are all valid since wl_output v1/v2
+   (we bind v2), so they must be here even though only mode is used. */
 static const struct wl_output_listener	mlx__wayland_output_listener =
   {
-    .mode = mlx__wayland_output_mode
+    .geometry = mlx__wayland_output_geometry,
+    .mode = mlx__wayland_output_mode,
+    .done = mlx__wayland_output_done,
+    .scale = mlx__wayland_output_scale
   };
 
 
