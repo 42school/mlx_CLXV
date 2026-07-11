@@ -135,7 +135,10 @@ static void	mlx__wayland_wm_draw_title(uint32_t *pixels, unsigned int width,
   max_x = (int)width - MLX_WM_TITLEBAR_CLOSE_WIDTH - MLX_WM_FONT_GLYPH_W;
   while (*title && x < max_x)
     {
-      mlx__wayland_wm_draw_char(pixels, width, height, x, y, *title);
+      /* glyph 0 (mapped from ' ') isn't actually blank in this atlas -
+	 skip sampling it entirely rather than render whatever it is */
+      if (*title != ' ')
+	mlx__wayland_wm_draw_char(pixels, width, height, x, y, *title);
       x += MLX_WM_FONT_GLYPH_W;
       title ++;
     }
