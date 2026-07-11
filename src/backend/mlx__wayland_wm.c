@@ -40,7 +40,7 @@ static int	mlx__wayland_wm_close_hit(mlx__wayland_win_t *win, int x, int y)
 }
 
 
-#define	MLX_WM_TITLEBAR_RADIUS	8
+#define	MLX_WM_TITLEBAR_RADIUS	6
 
 /* true for pixels that fall outside the rounded top-left/top-right
    corners (the bottom stays square, it meets the window content) */
@@ -180,7 +180,7 @@ static struct wl_buffer	*mlx__wayland_wm_titlebar_buffer(mlx__wayland_t *wl,
 	    pixels[y * (int)width + x] = 0x00000000;   /* corner cut, transparent */
 	  else if (x >= close_x &&
 		   mlx__wayland_wm_on_cross(x - close_x, y,
-					     MLX_WM_TITLEBAR_CLOSE_WIDTH, 7))
+					     MLX_WM_TITLEBAR_CLOSE_WIDTH, 5))
 	    pixels[y * (int)width + x] = 0xffe0e0e0;   /* close button, X mark */
 	  else if (x >= close_x)
 	    pixels[y * (int)width + x] = 0xff802020;   /* close button, dark red */

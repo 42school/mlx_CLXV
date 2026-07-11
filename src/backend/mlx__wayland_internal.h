@@ -36,10 +36,12 @@
 #define	MLX_WL_EVENT_EXPOSE		12	/* XCB_EXPOSE */
 #define	MLX_WL_EVENT_CLOSE		33	/* XCB_CLIENT_MESSAGE (WM_DELETE_WINDOW) */
 
-/* height, in pixels, of the fake title bar mlx_wm draws when the
-   compositor offers no server-side decoration (see mlx_wm.c) */
-#define	MLX_WM_TITLEBAR_HEIGHT		24
-#define	MLX_WM_TITLEBAR_CLOSE_WIDTH	24
+/* height, in pixels, of the fake title bar mlx__wayland_wm.c draws
+   when the compositor offers no server-side decoration - matches
+   font_atlas.height (mlx_font.c) exactly so the title text is blitted
+   at its native size, with no vertical padding/scaling to look ugly */
+#define	MLX_WM_TITLEBAR_HEIGHT		20
+#define	MLX_WM_TITLEBAR_CLOSE_WIDTH	20
 
 
 typedef struct			mlx__wayland_win_s	mlx__wayland_win_t;
