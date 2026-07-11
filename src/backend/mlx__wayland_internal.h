@@ -13,6 +13,9 @@
 #ifdef MLX_WAYLAND_HAVE_POINTER_WARP
 # include	"mlx__wayland_pointer_warp_protocol.h"
 #endif
+#ifdef MLX_WAYLAND_HAVE_DECORATION
+# include	"mlx__wayland_decoration_protocol.h"
+#endif
 
 /*
 ** MLX has no notion of native Wayland event numbers (unlike X11/XCB),
@@ -63,6 +66,9 @@ typedef struct			mlx__wayland_s
 #ifdef MLX_WAYLAND_HAVE_POINTER_WARP
   struct wp_pointer_warp_v1	*pointer_warp;
 #endif
+#ifdef MLX_WAYLAND_HAVE_DECORATION
+  struct zxdg_decoration_manager_v1	*decoration_manager;
+#endif
 
   struct xkb_context		*xkb_context;
   struct xkb_keymap		*xkb_keymap;
@@ -94,6 +100,9 @@ struct				mlx__wayland_win_s
   struct wl_surface		*surface;
   struct xdg_surface		*xdg_surface;
   struct xdg_toplevel		*xdg_toplevel;
+#ifdef MLX_WAYLAND_HAVE_DECORATION
+  struct zxdg_toplevel_decoration_v1	*decoration;
+#endif
   unsigned int			width;
   unsigned int			height;
   int				configured;

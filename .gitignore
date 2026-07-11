@@ -8,3 +8,5 @@ src/backend/mlx__wayland_xdg_shell_protocol.h
 src/backend/mlx__wayland_xdg_shell_protocol.c
 src/backend/mlx__wayland_pointer_warp_protocol.h
 src/backend/mlx__wayland_pointer_warp_protocol.c
+src/backend/mlx__wayland_decoration_protocol.h
+src/backend/mlx__wayland_decoration_protocol.c

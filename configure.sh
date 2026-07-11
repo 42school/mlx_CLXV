@@ -92,6 +92,14 @@ if [ "$BACKEND" = "wayland" ]; then
         else
             echo "not found - mlx_mouse_move() will be unsupported on this backend"
         fi
+
+        # optional: only enables a compositor-drawn title bar, not required to build
+        /bin/echo -n "Checking for xdg-decoration protocol (optional, for window decoration)... "
+        if [ -n "$WAYLAND_PROTOCOLS_DIR" ] && [ -f "$WAYLAND_PROTOCOLS_DIR/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml" ]; then
+            echo "found"
+        else
+            echo "not found - windows will be undecorated on this backend"
+        fi
     fi
 else
     check_header "xcb/xcb.h" "libxcbdevel"

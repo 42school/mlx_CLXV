@@ -35,6 +35,7 @@ SRC_WAYLAND=src/backend/mlx__wayland_init.c src/backend/mlx__wayland_window.c \
 # not part of SRC_WAYLAND: only compiled in when detected, see below,
 # but always cleaned so a stale .o from an earlier detection never lingers
 SRC_WAYLAND_POINTER_WARP=src/backend/mlx__wayland_pointer_warp_protocol.c
+SRC_WAYLAND_DECORATION=src/backend/mlx__wayland_decoration_protocol.c
 SRC_VULKAN=src/gpu/mlx___vulkan_init.c src/gpu/mlx___vulkan_window.c src/gpu/mlx___vulkan_draw.c \
 	src/gpu/mlx___vulkan_image.c
 
@@ -44,7 +45,7 @@ SRC_VULKAN=src/gpu/mlx___vulkan_init.c src/gpu/mlx___vulkan_window.c src/gpu/mlx
 # up-to-date to Make (it only compares timestamps, not compiler flags)
 # and never gets recompiled for the new backend
 ALL_OBJ=$(sort $(patsubst %.c,%.o,$(SRC_GENERIC) $(SRC_XCB) $(SRC_WAYLAND) \
-	$(SRC_WAYLAND_POINTER_WARP) $(SRC_VULKAN)))
+	$(SRC_WAYLAND_POINTER_WARP) $(SRC_WAYLAND_DECORATION) $(SRC_VULKAN)))
 
 SRC=$(SRC_GENERIC)
 ifeq ($(BACKEND),wayland)
@@ -62,6 +63,14 @@ ifneq ($(wildcard $(POINTER_WARP_XML)),)
 SRC+=src/backend/mlx__wayland_pointer_warp_protocol.c
 CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_WARP
 endif
+# xdg-decoration is what lets a compositor draw a title bar/borders for
+# a plain xdg-shell window; without it a window stays undecorated if
+# the compositor has no other client-side-decoration convention either
+DECORATION_XML:=$(WAYLAND_PROTOCOLS_DIR)/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
+ifneq ($(wildcard $(DECORATION_XML)),)
+SRC+=$(SRC_WAYLAND_DECORATION)
+CFLAGS+=-DMLX_WAYLAND_HAVE_DECORATION
+endif
 else
 SRC+=$(SRC_XCB) $(SRC_VULKAN)
 CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_XCB
@@ -76,6 +85,9 @@ ifeq ($(BACKEND),wayland)
 $(OBJ): src/backend/mlx__wayland_xdg_shell_protocol.h
 ifneq ($(wildcard $(POINTER_WARP_XML)),)
 $(OBJ): src/backend/mlx__wayland_pointer_warp_protocol.h
+endif
+ifneq ($(wildcard $(DECORATION_XML)),)
+$(OBJ): src/backend/mlx__wayland_decoration_protocol.h
 endif
 endif
 
@@ -118,6 +130,12 @@ src/backend/mlx__wayland_pointer_warp_protocol.h: $(POINTER_WARP_XML)
 src/backend/mlx__wayland_pointer_warp_protocol.c: $(POINTER_WARP_XML) src/backend/mlx__wayland_pointer_warp_protocol.h
 	wayland-scanner private-code $< $@
 
+src/backend/mlx__wayland_decoration_protocol.h: $(DECORATION_XML)
+	wayland-scanner client-header $< $@
+
+src/backend/mlx__wayland_decoration_protocol.c: $(DECORATION_XML) src/backend/mlx__wayland_decoration_protocol.h
+	wayland-scanner private-code $< $@
+
 $(NAME): $(OBJ)
 	@echo "Building library..."
 	$(CC) -shared -o $(NAME) $(CFLAGS) $(LDFLAGS) $(OBJ) $(LIBS)
@@ -130,6 +148,6 @@ pypkg: $(NAME) pybuild.sh
 	cp python/dist/mlx*.whl .
 
 clean:
-	rm -rf $(NAME) $(ALL_OBJ) *~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ python/src/mlx.egg-info src/backend/mlx__wayland_xdg_shell_protocol.h src/backend/mlx__wayland_xdg_shell_protocol.c src/backend/mlx__wayland_pointer_warp_protocol.h src/backend/mlx__wayland_pointer_warp_protocol.c
+	rm -rf $(NAME) $(ALL_OBJ) *~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ python/src/mlx.egg-info src/backend/mlx__wayland_xdg_shell_protocol.h src/backend/mlx__wayland_xdg_shell_protocol.c src/backend/mlx__wayland_pointer_warp_protocol.h src/backend/mlx__wayland_pointer_warp_protocol.c src/backend/mlx__wayland_decoration_protocol.h src/backend/mlx__wayland_decoration_protocol.c
 
 re: clean all

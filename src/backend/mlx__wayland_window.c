@@ -16,6 +16,10 @@ static void	*mlx__wayland_window_error(mlx__wayland_t *wl,
   if (wl && win)
     {
       mlx__wayland_win_remove(wl, win);
+#ifdef MLX_WAYLAND_HAVE_DECORATION
+      if (win->decoration)
+	zxdg_toplevel_decoration_v1_destroy(win->decoration);
+#endif
       if (win->xdg_toplevel)
 	xdg_toplevel_destroy(win->xdg_toplevel);
       if (win->xdg_surface)
@@ -91,6 +95,24 @@ static const struct xdg_toplevel_listener	mlx__wayland_xdg_toplevel_listener =
   };
 
 
+#ifdef MLX_WAYLAND_HAVE_DECORATION
+static void	mlx__wayland_decoration_configure(void *data,
+						  struct zxdg_toplevel_decoration_v1 *deco,
+						  uint32_t mode)
+{
+  /* the compositor can enforce client-side mode regardless of what we
+     asked for; mlx does not draw any decoration itself either way, so
+     there is nothing to react to here besides acknowledging the event */
+  (void)data; (void)deco; (void)mode;
+}
+
+static const struct zxdg_toplevel_decoration_v1_listener	mlx__wayland_decoration_listener =
+  {
+    .configure = mlx__wayland_decoration_configure
+  };
+#endif
+
+
 void	*mlx__wayland_window(mlx_backend_hooks_param_t *param)
 {
   mlx__wayland_t	*wl;
@@ -130,6 +152,24 @@ void	*mlx__wayland_window(mlx_backend_hooks_param_t *param)
      mirrors mlx__xcb_anti_resize_win() */
   xdg_toplevel_set_min_size(win->xdg_toplevel, win->width, win->height);
   xdg_toplevel_set_max_size(win->xdg_toplevel, win->width, win->height);
+
+#ifdef MLX_WAYLAND_HAVE_DECORATION
+  /* ask for a compositor-drawn title bar/borders; must happen before
+     the first commit below (required by decoration protocol v1). If
+     the compositor lacks the decoration manager, or ignores the
+     request, the window just stays undecorated - mlx draws nothing
+     itself either way, there is no client-side decoration fallback */
+  if (wl->decoration_manager)
+    {
+      win->decoration =
+	zxdg_decoration_manager_v1_get_toplevel_decoration(wl->decoration_manager,
+							    win->xdg_toplevel);
+      zxdg_toplevel_decoration_v1_add_listener(win->decoration,
+						&mlx__wayland_decoration_listener, win);
+      zxdg_toplevel_decoration_v1_set_mode(win->decoration,
+					    ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
+    }
+#endif
 
   /* trigger the first configure round-trip; no buffer is attached yet,
      the GPU backend attaches one once the swapchain is created */

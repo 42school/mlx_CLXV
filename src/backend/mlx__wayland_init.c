@@ -21,6 +21,10 @@ static void	*mlx__wayland_error(mlx__wayland_t *wl)
       if (wl->pointer_warp)
 	wp_pointer_warp_v1_destroy(wl->pointer_warp);
 #endif
+#ifdef MLX_WAYLAND_HAVE_DECORATION
+      if (wl->decoration_manager)
+	zxdg_decoration_manager_v1_destroy(wl->decoration_manager);
+#endif
       if (wl->xdg_wm_base)
 	xdg_wm_base_destroy(wl->xdg_wm_base);
       if (wl->output)
@@ -151,6 +155,14 @@ static void	mlx__wayland_registry_global(void *data,
        just means mlx_mouse_move() stays unsupported on this backend */
     wl->pointer_warp = wl_registry_bind(registry, name,
 					 &wp_pointer_warp_v1_interface, 1);
+#endif
+#ifdef MLX_WAYLAND_HAVE_DECORATION
+  else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
+    /* optional: lets the compositor draw a title bar/borders for us;
+       absent compositors (notably GNOME/Mutter historically) leave the
+       window undecorated, which is a known, accepted Wayland reality */
+    wl->decoration_manager = wl_registry_bind(registry, name,
+					       &zxdg_decoration_manager_v1_interface, 1);
 #endif
 }
 
