@@ -59,10 +59,12 @@
 **  emulate XWarpPointer); it fails (-1) otherwise.
 ** mlx_do_key_autorepeatoff/on() are no-ops on the Wayland backend, since
 **  wl_keyboard never auto-repeats key presses itself.
-** Window decoration (title bar, close button) on the Wayland backend
-**  depends on the compositor supporting the xdg-decoration extension;
-**  mlx does not draw any client-side decoration itself, so a window
-**  stays plain/undecorated on compositors lacking that extension.
+** Window decoration on the Wayland backend uses the compositor's own
+**  server-side decoration (title bar, close button) when the compositor
+**  supports the xdg-decoration extension and grants it. Otherwise (e.g.
+**  GNOME/Mutter, which enforces client-side decoration) mlx draws its
+**  own minimal title bar instead, with a close button and support for
+**  moving the window by dragging it.
 **
 */
 

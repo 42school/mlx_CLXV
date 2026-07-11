@@ -54,6 +54,9 @@ void	mlx__wayland_win_remove(mlx__wayland_t *wl, mlx__wayland_win_t *win)
     wl->pointer_focus = NULL;
   if (wl->keyboard_focus == win)
     wl->keyboard_focus = NULL;
+  if (wl->pointer_surface == win->surface ||
+      wl->pointer_surface == win->titlebar_surface)
+    wl->pointer_surface = NULL;
   /* drop any already-queued events still pointing at this window,
      it is about to be freed by the caller */
   mlx__wayland_queue_purge_win(wl, win);

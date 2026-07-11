@@ -37,9 +37,15 @@ static void	mlx__wayland_ptr_enter(void *data, struct wl_pointer *ptr,
 
   (void)ptr;
   wl = (mlx__wayland_t *)data;
+  wl->pointer_surface = surface;
+  wl->pointer_enter_serial = serial;
+  if (mlx__wayland_wm_pointer_enter(wl, surface))
+    {
+      mlx__wayland_wm_pointer_motion(wl, surface, wl_fixed_to_int(x), wl_fixed_to_int(y));
+      return ;
+    }
   win = mlx__wayland_win_from_surface(wl, surface);
   wl->pointer_focus = win;
-  wl->pointer_enter_serial = serial;
   if (win)
     {
       win->ptr_x = wl_fixed_to_int(x);
@@ -53,8 +59,11 @@ static void	mlx__wayland_ptr_leave(void *data, struct wl_pointer *ptr,
 {
   mlx__wayland_t	*wl;
 
-  (void)ptr; (void)serial; (void)surface;
+  (void)ptr; (void)serial;
   wl = (mlx__wayland_t *)data;
+  wl->pointer_surface = NULL;
+  if (mlx__wayland_wm_pointer_leave(wl, surface))
+    return ;
   wl->pointer_focus = NULL;
 }
 
@@ -66,6 +75,9 @@ static void	mlx__wayland_ptr_motion(void *data, struct wl_pointer *ptr,
 
   (void)ptr; (void)time;
   wl = (mlx__wayland_t *)data;
+  if (mlx__wayland_wm_pointer_motion(wl, wl->pointer_surface,
+				      wl_fixed_to_int(x), wl_fixed_to_int(y)))
+    return ;
   win = wl->pointer_focus;
   if (win == NULL)
     return ;
@@ -82,8 +94,10 @@ static void	mlx__wayland_ptr_button(void *data, struct wl_pointer *ptr,
   mlx__wayland_win_t	*win;
   unsigned int		x11_button;
 
-  (void)ptr; (void)serial; (void)time;
+  (void)ptr; (void)time;
   wl = (mlx__wayland_t *)data;
+  if (mlx__wayland_wm_pointer_button(wl, wl->pointer_surface, serial, button, state))
+    return ;
   win = wl->pointer_focus;
   if (win == NULL)
     return ;

@@ -34,6 +34,11 @@
 #define	MLX_WL_EVENT_EXPOSE		6
 #define	MLX_WL_EVENT_CLOSE		7
 
+/* height, in pixels, of the fake title bar mlx_wm draws when the
+   compositor offers no server-side decoration (see mlx_wm.c) */
+#define	MLX_WM_TITLEBAR_HEIGHT		24
+#define	MLX_WM_TITLEBAR_CLOSE_WIDTH	24
+
 
 typedef struct			mlx__wayland_win_s	mlx__wayland_win_t;
 
@@ -57,6 +62,7 @@ typedef struct			mlx__wayland_s
   struct wl_display		*display;
   struct wl_registry		*registry;
   struct wl_compositor		*compositor;
+  struct wl_subcompositor	*subcompositor;
   struct wl_shm			*shm;
   struct wl_seat		*seat;
   struct wl_pointer		*pointer;
@@ -80,6 +86,11 @@ typedef struct			mlx__wayland_s
   unsigned int			pointer_enter_serial;
   int				cursor_visible;
 
+  /* raw currently-entered surface: wl_pointer.motion/button don't repeat
+     it, only .enter does, so it must be tracked to know whether motion/
+     button targets a real mlx window (pointer_focus) or the fake
+     title bar surface (mlx_wm.c) */
+  struct wl_surface		*pointer_surface;
   mlx__wayland_win_t		*pointer_focus;
   mlx__wayland_win_t		*keyboard_focus;
 
@@ -110,6 +121,14 @@ struct				mlx__wayland_win_s
   int				ptr_y;
   int				(*hook[MLX_WAYLAND_MAX_EVENT])();
   void				*hook_param[MLX_WAYLAND_MAX_EVENT];
+
+  /* fake title bar (mlx__wayland_wm.c), only created when the compositor
+     grants no server-side decoration for this window */
+  struct wl_surface		*titlebar_surface;
+  struct wl_subsurface		*titlebar_subsurface;
+  struct wl_buffer		*titlebar_buffer;
+  int				titlebar_ptr_x;
+  int				titlebar_ptr_y;
 };
 
 
@@ -126,6 +145,18 @@ void	mlx__wayland_cursor_destroy(mlx__wayland_t *wl);
 void	mlx__wayland_cursor_set(mlx__wayland_t *wl, int visible);
 void	mlx__wayland_win_add(mlx__wayland_t *wl, mlx__wayland_win_t *win);
 void	mlx__wayland_win_remove(mlx__wayland_t *wl, mlx__wayland_win_t *win);
+
+/* mlx__wayland_wm.c - the fake title bar used when no server-side
+   decoration is available; entirely self-contained, the rest of the
+   backend only needs to create/destroy it and forward pointer events */
+void	mlx__wayland_wm_titlebar_create(mlx__wayland_win_t *win);
+void	mlx__wayland_wm_titlebar_destroy(mlx__wayland_win_t *win);
+int	mlx__wayland_wm_pointer_enter(mlx__wayland_t *wl, struct wl_surface *surface);
+int	mlx__wayland_wm_pointer_leave(mlx__wayland_t *wl, struct wl_surface *surface);
+int	mlx__wayland_wm_pointer_motion(mlx__wayland_t *wl, struct wl_surface *surface,
+					int x, int y);
+int	mlx__wayland_wm_pointer_button(mlx__wayland_t *wl, struct wl_surface *surface,
+					uint32_t serial, uint32_t button, uint32_t state);
 
 
 #endif /* MLX__WAYLAND_INTERNAL_H */

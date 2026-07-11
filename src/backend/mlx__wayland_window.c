@@ -16,6 +16,7 @@ static void	*mlx__wayland_window_error(mlx__wayland_t *wl,
   if (wl && win)
     {
       mlx__wayland_win_remove(wl, win);
+      mlx__wayland_wm_titlebar_destroy(win);
 #ifdef MLX_WAYLAND_HAVE_DECORATION
       if (win->decoration)
 	zxdg_toplevel_decoration_v1_destroy(win->decoration);
@@ -100,10 +101,15 @@ static void	mlx__wayland_decoration_configure(void *data,
 						  struct zxdg_toplevel_decoration_v1 *deco,
 						  uint32_t mode)
 {
+  mlx__wayland_win_t	*win;
+
   /* the compositor can enforce client-side mode regardless of what we
-     asked for; mlx does not draw any decoration itself either way, so
-     there is nothing to react to here besides acknowledging the event */
-  (void)data; (void)deco; (void)mode;
+     asked for; when it does, fall back to mlx_wm's fake title bar,
+     same as when there is no decoration manager at all */
+  (void)deco;
+  win = (mlx__wayland_win_t *)data;
+  if (mode == ZXDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE)
+    mlx__wayland_wm_titlebar_create(win);
 }
 
 static const struct zxdg_toplevel_decoration_v1_listener	mlx__wayland_decoration_listener =
@@ -156,9 +162,9 @@ void	*mlx__wayland_window(mlx_backend_hooks_param_t *param)
 #ifdef MLX_WAYLAND_HAVE_DECORATION
   /* ask for a compositor-drawn title bar/borders; must happen before
      the first commit below (required by decoration protocol v1). If
-     the compositor lacks the decoration manager, or ignores the
-     request, the window just stays undecorated - mlx draws nothing
-     itself either way, there is no client-side decoration fallback */
+     the compositor grants it we're done; if it enforces client-side
+     mode instead, mlx__wayland_decoration_configure() falls back to
+     mlx__wayland_wm.c's fake title bar once it hears back */
   if (wl->decoration_manager)
     {
       win->decoration =
@@ -169,6 +175,11 @@ void	*mlx__wayland_window(mlx_backend_hooks_param_t *param)
       zxdg_toplevel_decoration_v1_set_mode(win->decoration,
 					    ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
     }
+  else
+    mlx__wayland_wm_titlebar_create(win);
+#else
+  /* no decoration protocol compiled in at all: always use the fallback */
+  mlx__wayland_wm_titlebar_create(win);
 #endif
 
   /* trigger the first configure round-trip; no buffer is attached yet,

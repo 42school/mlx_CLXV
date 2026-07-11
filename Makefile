@@ -30,7 +30,7 @@ SRC_WAYLAND=src/backend/mlx__wayland_init.c src/backend/mlx__wayland_window.c \
 	src/backend/mlx__wayland_flush.c src/backend/mlx__wayland_seat.c \
 	src/backend/mlx__wayland_cursor.c src/backend/mlx__wayland_hook.c \
 	src/backend/mlx__wayland_event.c src/backend/mlx__wayland_extra.c \
-	src/backend/mlx__wayland_util.c \
+	src/backend/mlx__wayland_util.c src/backend/mlx__wayland_wm.c \
 	src/backend/mlx__wayland_xdg_shell_protocol.c
 # not part of SRC_WAYLAND: only compiled in when detected, see below,
 # but always cleaned so a stale .o from an earlier detection never lingers

@@ -31,6 +31,8 @@ static void	*mlx__wayland_error(mlx__wayland_t *wl)
 	wl_output_destroy(wl->output);
       if (wl->shm)
 	wl_shm_destroy(wl->shm);
+      if (wl->subcompositor)
+	wl_subcompositor_destroy(wl->subcompositor);
       if (wl->compositor)
 	wl_compositor_destroy(wl->compositor);
       if (wl->registry)
@@ -129,6 +131,11 @@ static void	mlx__wayland_registry_global(void *data,
   if (strcmp(interface, wl_compositor_interface.name) == 0)
     wl->compositor = wl_registry_bind(registry, name,
 				       &wl_compositor_interface, 4);
+  else if (strcmp(interface, wl_subcompositor_interface.name) == 0)
+    /* needed for mlx_wm.c's fake title bar (a wl_subsurface); no
+       events, so no listener to worry about */
+    wl->subcompositor = wl_registry_bind(registry, name,
+					  &wl_subcompositor_interface, 1);
   else if (strcmp(interface, wl_shm_interface.name) == 0)
     wl->shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
   else if (strcmp(interface, wl_seat_interface.name) == 0)
