@@ -9,6 +9,7 @@
 #define	_GNU_SOURCE
 
 #include	<stdlib.h>
+#include	<stdio.h>
 #include	<unistd.h>
 #include	<sys/mman.h>
 #include	<linux/input-event-codes.h>
@@ -172,6 +173,10 @@ int	mlx__wayland_wm_pointer_button(mlx__wayland_t *wl, struct wl_surface *surfac
   mlx__wayland_win_t	*win;
 
   win = mlx__wayland_wm_win_from_titlebar(wl, surface);
+  fprintf(stderr, "wm button: win=%p button=%u state=%u ptr=(%d,%d) hit=%d\n",
+	  (void *)win, button, state, win ? win->titlebar_ptr_x : -1,
+	  win ? win->titlebar_ptr_y : -1,
+	  win ? mlx__wayland_wm_close_hit(win, win->titlebar_ptr_x, win->titlebar_ptr_y) : -1);
   if (win == NULL)
     return (0);
   if (button == BTN_LEFT && state == WL_POINTER_BUTTON_STATE_PRESSED)
