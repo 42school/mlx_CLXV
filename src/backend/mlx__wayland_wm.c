@@ -96,6 +96,10 @@ static void	mlx__wayland_wm_draw_char(uint32_t *pixels, unsigned int width,
   int		px;
   int		py;
   unsigned char	alpha;
+  uint32_t	bg;
+  unsigned char	bg_r;
+  unsigned char	bg_g;
+  unsigned char	bg_b;
 
   val = (c >= 32 && c <= 126) ? c - 32 : 31;   /* 31 = '?', out-of-range fallback */
   atlas_x0 = val * (MLX_WM_FONT_GLYPH_W + 2);
@@ -113,7 +117,22 @@ static void	mlx__wayland_wm_draw_char(uint32_t *pixels, unsigned int width,
 					     font_atlas.bytes_per_pixel +
 					     (atlas_x0 + x) * 4 + 3];
 	      if (alpha)
-		pixels[py * width + px] = 0xffe8e8e8;   /* light grey text */
+		{
+		  /* proper alpha blend against the bar colour already there,
+		     same "over" compositing the GPU shader does for
+		     mlx_string_put() (outColor = color * texture) instead
+		     of a hard on/off threshold, which thickened every
+		     stroke by fully painting even faint edge pixels */
+		  bg = pixels[py * width + px];
+		  bg_r = (bg >> 16) & 0xff;
+		  bg_g = (bg >> 8) & 0xff;
+		  bg_b = bg & 0xff;
+		  bg_r = (0xe8 * alpha + bg_r * (255 - alpha)) / 255;
+		  bg_g = (0xe8 * alpha + bg_g * (255 - alpha)) / 255;
+		  bg_b = (0xe8 * alpha + bg_b * (255 - alpha)) / 255;
+		  pixels[py * width + px] = 0xff000000 |
+		    (bg_r << 16) | (bg_g << 8) | bg_b;
+		}
 	    }
 	  x ++;
 	}
