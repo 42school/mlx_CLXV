@@ -118,6 +118,7 @@ struct				mlx__wayland_win_s
 void	mlx__wayland_queue_push(mlx__wayland_t *wl, mlx__wayland_win_t *win,
 				 uint8_t type, unsigned int a,
 				 unsigned int x, unsigned int y);
+void	mlx__wayland_seat_bind(mlx__wayland_t *wl);
 int	mlx__wayland_seat_init(mlx__wayland_t *wl);
 void	mlx__wayland_seat_destroy(mlx__wayland_t *wl);
 int	mlx__wayland_cursor_init(mlx__wayland_t *wl);

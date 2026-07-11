@@ -132,10 +132,13 @@ static void	mlx__wayland_registry_global(void *data,
   else if (strcmp(interface, wl_shm_interface.name) == 0)
     wl->shm = wl_registry_bind(registry, name, &wl_shm_interface, 1);
   else if (strcmp(interface, wl_seat_interface.name) == 0)
-    /* stick to version 1: only 'capabilities' is needed, and it keeps
-       the pointer/keyboard listeners below to their simplest, stable
-       set of events (no frame/axis_source/repeat_info bookkeeping) */
-    wl->seat = wl_registry_bind(registry, name, &wl_seat_interface, 1);
+    {
+      /* stick to version 1: only 'capabilities' is needed, and it keeps
+	 the pointer/keyboard listeners below to their simplest, stable
+	 set of events (no frame/axis_source/repeat_info bookkeeping) */
+      wl->seat = wl_registry_bind(registry, name, &wl_seat_interface, 1);
+      mlx__wayland_seat_bind(wl);
+    }
   else if (strcmp(interface, wl_output_interface.name) == 0)
     {
       wl->output = wl_registry_bind(registry, name, &wl_output_interface, 2);

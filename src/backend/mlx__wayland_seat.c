@@ -268,9 +268,18 @@ static const struct wl_seat_listener	mlx__wayland_seat_listener =
   };
 
 
+void	mlx__wayland_seat_bind(mlx__wayland_t *wl)
+{
+  /* must happen right at bind time, in the registry global handler:
+     the compositor can send capabilities as soon as the seat is bound,
+     and libwayland-client silently discards events for objects that
+     don't have a listener attached yet - waiting until a later
+     round-trip to add this listener loses that event permanently */
+  wl_seat_add_listener(wl->seat, &mlx__wayland_seat_listener, wl);
+}
+
 int	mlx__wayland_seat_init(mlx__wayland_t *wl)
 {
-  wl_seat_add_listener(wl->seat, &mlx__wayland_seat_listener, wl);
   wl_display_roundtrip(wl->display);   /* get capabilities, bind pointer/keyboard */
   wl_display_roundtrip(wl->display);   /* get the initial keymap */
   return (0);
