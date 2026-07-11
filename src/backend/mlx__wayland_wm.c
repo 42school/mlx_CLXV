@@ -39,6 +39,45 @@ static int	mlx__wayland_wm_close_hit(mlx__wayland_win_t *win, int x, int y)
 }
 
 
+#define	MLX_WM_TITLEBAR_RADIUS	8
+
+/* true for pixels that fall outside the rounded top-left/top-right
+   corners (the bottom stays square, it meets the window content) */
+static int	mlx__wayland_wm_outside_corner(int x, int y, int width, int radius)
+{
+  int	cx;
+  int	dx;
+  int	dy;
+
+  if (y >= radius)
+    return (0);
+  if (x < radius)
+    cx = radius;
+  else if (x >= width - radius)
+    cx = width - radius - 1;
+  else
+    return (0);
+  dx = x - cx;
+  dy = y - radius;
+  return (dx * dx + dy * dy > radius * radius);
+}
+
+/* true for pixels on either diagonal of an X mark, inset from the
+   edges of a size x size square by 'margin' */
+static int	mlx__wayland_wm_on_cross(int x, int y, int size, int margin)
+{
+  int	nx;
+  int	ny;
+  int	span;
+
+  if (x < margin || x >= size - margin || y < margin || y >= size - margin)
+    return (0);
+  nx = x - margin;
+  ny = y - margin;
+  span = size - 2 * margin - 1;
+  return (abs(nx - ny) <= 1 || abs(nx + ny - span) <= 1);
+}
+
 static struct wl_buffer	*mlx__wayland_wm_titlebar_buffer(mlx__wayland_t *wl,
 								 unsigned int width,
 								 unsigned int height)
@@ -48,8 +87,9 @@ static struct wl_buffer	*mlx__wayland_wm_titlebar_buffer(mlx__wayland_t *wl,
   struct wl_buffer	*buffer;
   uint32_t		*pixels;
   size_t		size;
-  unsigned int		x;
-  unsigned int		y;
+  int			x;
+  int			y;
+  int			close_x;
 
   size = (size_t)width * height * 4;
   fd = memfd_create("mlx-wl-titlebar", 0);
@@ -65,16 +105,23 @@ static struct wl_buffer	*mlx__wayland_wm_titlebar_buffer(mlx__wayland_t *wl,
       close(fd);
       return (NULL);
     }
+  close_x = (int)width - MLX_WM_TITLEBAR_CLOSE_WIDTH;
   y = 0;
-  while (y < height)
+  while (y < (int)height)
     {
       x = 0;
-      while (x < width)
+      while (x < (int)width)
 	{
-	  if (x >= width - MLX_WM_TITLEBAR_CLOSE_WIDTH)
-	    pixels[y * width + x] = 0xff802020;   /* close button, dark red */
+	  if (mlx__wayland_wm_outside_corner(x, y, (int)width, MLX_WM_TITLEBAR_RADIUS))
+	    pixels[y * (int)width + x] = 0x00000000;   /* corner cut, transparent */
+	  else if (x >= close_x &&
+		   mlx__wayland_wm_on_cross(x - close_x, y,
+					     MLX_WM_TITLEBAR_CLOSE_WIDTH, 7))
+	    pixels[y * (int)width + x] = 0xffe0e0e0;   /* close button, X mark */
+	  else if (x >= close_x)
+	    pixels[y * (int)width + x] = 0xff802020;   /* close button, dark red */
 	  else
-	    pixels[y * width + x] = 0xff383838;   /* bar, dark grey */
+	    pixels[y * (int)width + x] = 0xff383838;   /* bar, dark grey */
 	  x ++;
 	}
       y ++;
