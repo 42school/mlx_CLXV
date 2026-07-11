@@ -57,7 +57,10 @@ void	mlx__wayland_event_handle(mlx_backend_hooks_param_t *param)
 {
   mlx__wayland_win_t	*win;
   mlx__wayland_event_t	*ev;
-  int			(*f)();
+  int			(*f_key)(unsigned int, void *);
+  int			(*f_button)(unsigned int, unsigned int, unsigned int, void *);
+  int			(*f_motion)(unsigned int, unsigned int, void *);
+  int			(*f_generic)(void *);
 
   win = (mlx__wayland_win_t *)(param->backend_win);
   ev = (mlx__wayland_event_t *)(param->event);
@@ -69,14 +72,25 @@ void	mlx__wayland_event_handle(mlx_backend_hooks_param_t *param)
     }
   if (ev->win != win || win->hook[ev->type] == NULL)
     return ;
-  f = win->hook[ev->type];
   if (ev->type == MLX_WL_EVENT_KEY_PRESS || ev->type == MLX_WL_EVENT_KEY_RELEASE)
-    f(ev->a, win->hook_param[ev->type]);
+    {
+      f_key = win->hook[ev->type];
+      f_key(ev->a, win->hook_param[ev->type]);
+    }
   else if (ev->type == MLX_WL_EVENT_BUTTON_PRESS ||
 	   ev->type == MLX_WL_EVENT_BUTTON_RELEASE)
-    f(ev->a, ev->x, ev->y, win->hook_param[ev->type]);
+    {
+      f_button = win->hook[ev->type];
+      f_button(ev->a, ev->x, ev->y, win->hook_param[ev->type]);
+    }
   else if (ev->type == MLX_WL_EVENT_MOTION)
-    f(ev->x, ev->y, win->hook_param[ev->type]);
+    {
+      f_motion = win->hook[ev->type];
+      f_motion(ev->x, ev->y, win->hook_param[ev->type]);
+    }
   else
-    f(win->hook_param[ev->type]);
+    {
+      f_generic = win->hook[ev->type];
+      f_generic(win->hook_param[ev->type]);
+    }
 }
