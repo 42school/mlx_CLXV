@@ -118,6 +118,7 @@ struct				mlx__wayland_win_s
 #endif
   unsigned int			width;
   unsigned int			height;
+  char				*title;   /* copy, needed by mlx__wayland_wm.c */
   int				configured;
   int				ptr_x;
   int				ptr_y;

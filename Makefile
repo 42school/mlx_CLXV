@@ -22,7 +22,7 @@ NAME=libmlx.so
 SRC_GENERIC=src/mlx_init.c src/mlx_window.c src/mlx_image.c src/mlx_do_sync.c src/mlx_loop.c \
 	src/mlx_key_hook.c src/mlx_mouse_hook.c src/mlx_expose_hook.c src/mlx_loop_hook.c \
 	src/mlx_hook.c src/mlx_be_gpu_hooks.c src/mlx_xpm.c src/mlx_png.c src/mlx_string_put.c \
-	src/mlx_be_extra.c
+	src/mlx_font.c src/mlx_be_extra.c
 SRC_XCB=src/backend/mlx__xcb_init.c src/backend/mlx__xcb_window.c src/backend/mlx__xcb_flush.c \
 	src/backend/mlx__xcb_anti_resize_win.c src/backend/mlx__xcb_loop.c src/backend/mlx__xcb_event.c \
 	src/backend/mlx__xcb_hook.c src/backend/mlx__xcb_extra.c

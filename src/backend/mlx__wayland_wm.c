@@ -14,6 +14,7 @@
 #include	<linux/input-event-codes.h>
 
 #include	"mlx_internal.h"
+#include	"mlx_font.h"
 
 #include	<wayland-client.h>
 
@@ -78,9 +79,72 @@ static int	mlx__wayland_wm_on_cross(int x, int y, int size, int margin)
   return (abs(nx - ny) <= 1 || abs(nx + ny - span) <= 1);
 }
 
+/* reuses the same font atlas as mlx_string_put() (mlx_font.c): a strip
+   of 95 printable-ASCII glyphs, stored as a white-on-transparent mask
+   tinted here with the bar's own text colour instead of the caller's */
+#define	MLX_WM_FONT_NB_CHAR	95
+#define	MLX_WM_FONT_GLYPH_W	((font_atlas.width / MLX_WM_FONT_NB_CHAR) - 2)
+
+static void	mlx__wayland_wm_draw_char(uint32_t *pixels, unsigned int width,
+					  unsigned int height, int dst_x,
+					  int dst_y, char c)
+{
+  int		val;
+  int		atlas_x0;
+  int		x;
+  int		y;
+  int		px;
+  int		py;
+  unsigned char	alpha;
+
+  val = (c >= 32 && c <= 126) ? c - 32 : 31;   /* 31 = '?', out-of-range fallback */
+  atlas_x0 = val * (MLX_WM_FONT_GLYPH_W + 2);
+  y = 0;
+  while (y < (int)font_atlas.height)
+    {
+      x = 0;
+      while (x < MLX_WM_FONT_GLYPH_W)
+	{
+	  px = dst_x + x;
+	  py = dst_y + y;
+	  if (px >= 0 && px < (int)width && py >= 0 && py < (int)height)
+	    {
+	      alpha = font_atlas.pixel_data[y * font_atlas.width *
+					     font_atlas.bytes_per_pixel +
+					     (atlas_x0 + x) * 4 + 3];
+	      if (alpha)
+		pixels[py * width + px] = 0xffe8e8e8;   /* light grey text */
+	    }
+	  x ++;
+	}
+      y ++;
+    }
+}
+
+static void	mlx__wayland_wm_draw_title(uint32_t *pixels, unsigned int width,
+					   unsigned int height, const char *title)
+{
+  int	x;
+  int	y;
+  int	max_x;
+
+  if (title == NULL)
+    return ;
+  x = 8;
+  y = ((int)height - (int)font_atlas.height) / 2;
+  max_x = (int)width - MLX_WM_TITLEBAR_CLOSE_WIDTH - MLX_WM_FONT_GLYPH_W;
+  while (*title && x < max_x)
+    {
+      mlx__wayland_wm_draw_char(pixels, width, height, x, y, *title);
+      x += MLX_WM_FONT_GLYPH_W;
+      title ++;
+    }
+}
+
 static struct wl_buffer	*mlx__wayland_wm_titlebar_buffer(mlx__wayland_t *wl,
 								 unsigned int width,
-								 unsigned int height)
+								 unsigned int height,
+								 const char *title)
 {
   int			fd;
   struct wl_shm_pool	*pool;
@@ -126,6 +190,7 @@ static struct wl_buffer	*mlx__wayland_wm_titlebar_buffer(mlx__wayland_t *wl,
 	}
       y ++;
     }
+  mlx__wayland_wm_draw_title(pixels, width, height, title);
   munmap(pixels, size);
   pool = wl_shm_create_pool(wl->shm, fd, (int32_t)size);
   close(fd);
@@ -165,7 +230,8 @@ void	mlx__wayland_wm_titlebar_create(mlx__wayland_win_t *win)
 				   win->height + MLX_WM_TITLEBAR_HEIGHT);
 
   win->titlebar_buffer = mlx__wayland_wm_titlebar_buffer(wl, win->width,
-							  MLX_WM_TITLEBAR_HEIGHT);
+							  MLX_WM_TITLEBAR_HEIGHT,
+							  win->title);
   if (win->titlebar_buffer == NULL)
     return ;
   wl_surface_attach(win->titlebar_surface, win->titlebar_buffer, 0, 0);

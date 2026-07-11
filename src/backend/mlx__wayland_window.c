@@ -17,6 +17,7 @@ static void	*mlx__wayland_window_error(mlx__wayland_t *wl,
     {
       mlx__wayland_win_remove(wl, win);
       mlx__wayland_wm_titlebar_destroy(win);
+      free(win->title);
 #ifdef MLX_WAYLAND_HAVE_DECORATION
       if (win->decoration)
 	zxdg_toplevel_decoration_v1_destroy(win->decoration);
@@ -131,6 +132,8 @@ void	*mlx__wayland_window(mlx_backend_hooks_param_t *param)
   win->wl = wl;
   win->width = param->size.width;
   win->height = param->size.height;
+  if (param->title)
+    win->title = strdup(param->title);
   mlx__wayland_win_add(wl, win);
 
   win->surface = wl_compositor_create_surface(wl->compositor);
