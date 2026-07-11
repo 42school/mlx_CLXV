@@ -1,6 +1,5 @@
 
 #include	<stdlib.h>
-#include	<stdio.h>
 #include	<string.h>
 #include	<strings.h>
 
@@ -104,8 +103,7 @@ static void	mlx__wayland_decoration_configure(void *data,
   /* the compositor can enforce client-side mode regardless of what we
      asked for; mlx does not draw any decoration itself either way, so
      there is nothing to react to here besides acknowledging the event */
-  (void)data; (void)deco;
-  fprintf(stderr, "decoration configure: mode=%u (client_side=1, server_side=2)\n", mode);
+  (void)data; (void)deco; (void)mode;
 }
 
 static const struct zxdg_toplevel_decoration_v1_listener	mlx__wayland_decoration_listener =
