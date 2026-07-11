@@ -289,26 +289,39 @@ static int	mlx___vulkan_swap_chain(mlx___vulkan_t *vk,
     return (VK_ERROR_UNKNOWN);
   vkGetPhysicalDeviceSurfaceFormatsKHR(vk->devices[vk->dev], vkwin->surface,
 				       &(vkwin->sfmt_nb), vkwin->surf_fmt);
+  /* only consider the plain SRGB-nonlinear colorspace and stop at the
+     first match: some WSI (seen on Wayland with VK_EXT_swapchain_colorspace)
+     report the same formats again under several extended/HDR colorspaces
+     (e.g. HDR10 ST.2084); without this filter the loop kept overwriting
+     format/color_space all the way to the last matching entry, landing
+     on whichever colorspace happened to be listed last instead of the
+     standard one - mlx writes plain SDR bytes and has no HDR/color
+     management support, so any other colorspace makes the image look
+     badly over/under-exposed */
   vkwin->format = -1;
   i = 0;
-  while (i < vkwin->sfmt_nb)
+  while (i < vkwin->sfmt_nb && vkwin->format == -1)
     {
-      fprintf(stderr, "surface formats - id: %d - fmt %d colspc %d\n", i, (vkwin->surf_fmt+i)->format, (vkwin->surf_fmt+i)->colorSpace);
-      if ((vkwin->surf_fmt+i)->format == VK_FORMAT_UNDEFINED ||
-	  (vkwin->surf_fmt+i)->format == VK_FORMAT_B8G8R8A8_UNORM )
+      if ((vkwin->surf_fmt+i)->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR &&
+	  ((vkwin->surf_fmt+i)->format == VK_FORMAT_UNDEFINED ||
+	   (vkwin->surf_fmt+i)->format == VK_FORMAT_B8G8R8A8_UNORM))
 	{
 	  vkwin->format = VK_FORMAT_B8G8R8A8_UNORM;
 	  vkwin->color_space = (vkwin->surf_fmt+i)->colorSpace;
 	}
-      if (vkwin->format == -1 && ((vkwin->surf_fmt+i)->format
-				  == VK_FORMAT_B8G8R8A8_SRGB))
+      i ++;
+    }
+  i = 0;
+  while (i < vkwin->sfmt_nb && vkwin->format == -1)
+    {
+      if ((vkwin->surf_fmt+i)->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR &&
+	  (vkwin->surf_fmt+i)->format == VK_FORMAT_B8G8R8A8_SRGB)
 	{
 	  vkwin->format = VK_FORMAT_B8G8R8A8_SRGB;
 	  vkwin->color_space = (vkwin->surf_fmt+i)->colorSpace;
 	}
       i ++;
     }
-  fprintf(stderr, "=> selected fmt %d - colspc %d\n", vkwin->format, vkwin->color_space);
 
   /* then capabilities */
   if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk->devices[vk->dev],
@@ -317,7 +330,7 @@ static int	mlx___vulkan_swap_chain(mlx___vulkan_t *vk,
       != VK_SUCCESS)
     return (VK_ERROR_UNKNOWN);
 
-  fprintf(stderr, "surf cap min-max : %d %d - supportedCompositeAlpha: 0x%x\n", vkwin->surf_cap.minImageCount, vkwin->surf_cap.maxImageCount, vkwin->surf_cap.supportedCompositeAlpha);
+  // printf("surf cap min-max : %d %d\n", vkwin->surf_cap.minImageCount, vkwin->surf_cap.maxImageCount);
 
   vkwin->width = (vkwin->surf_cap.currentExtent.width==-1)?param->dst.width:vkwin->surf_cap.currentExtent.width;
   vkwin->height = (vkwin->surf_cap.currentExtent.height==-1)?param->dst.height:vkwin->surf_cap.currentExtent.height;
