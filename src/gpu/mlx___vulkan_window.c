@@ -293,7 +293,7 @@ static int	mlx___vulkan_swap_chain(mlx___vulkan_t *vk,
   i = 0;
   while (i < vkwin->sfmt_nb)
     {
-      // printf("surface formats - id: %d - fmt %d colspc %d\n", i, (vkwin->surf_fmt+i)->format, (vkwin->surf_fmt+i)->colorSpace);
+      fprintf(stderr, "surface formats - id: %d - fmt %d colspc %d\n", i, (vkwin->surf_fmt+i)->format, (vkwin->surf_fmt+i)->colorSpace);
       if ((vkwin->surf_fmt+i)->format == VK_FORMAT_UNDEFINED ||
 	  (vkwin->surf_fmt+i)->format == VK_FORMAT_B8G8R8A8_UNORM )
 	{
@@ -308,7 +308,7 @@ static int	mlx___vulkan_swap_chain(mlx___vulkan_t *vk,
 	}
       i ++;
     }
-  // printf("=> selected fmt %d - colspc %d\n", vkwin->format, vkwin->color_space);
+  fprintf(stderr, "=> selected fmt %d - colspc %d\n", vkwin->format, vkwin->color_space);
 
   /* then capabilities */
   if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk->devices[vk->dev],
@@ -317,7 +317,7 @@ static int	mlx___vulkan_swap_chain(mlx___vulkan_t *vk,
       != VK_SUCCESS)
     return (VK_ERROR_UNKNOWN);
 
-  // printf("surf cap min-max : %d %d\n", vkwin->surf_cap.minImageCount, vkwin->surf_cap.maxImageCount);
+  fprintf(stderr, "surf cap min-max : %d %d - supportedCompositeAlpha: 0x%x\n", vkwin->surf_cap.minImageCount, vkwin->surf_cap.maxImageCount, vkwin->surf_cap.supportedCompositeAlpha);
 
   vkwin->width = (vkwin->surf_cap.currentExtent.width==-1)?param->dst.width:vkwin->surf_cap.currentExtent.width;
   vkwin->height = (vkwin->surf_cap.currentExtent.height==-1)?param->dst.height:vkwin->surf_cap.currentExtent.height;
