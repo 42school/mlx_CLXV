@@ -21,6 +21,10 @@ static void	*mlx__wayland_error(mlx__wayland_t *wl)
       if (wl->pointer_warp)
 	wp_pointer_warp_v1_destroy(wl->pointer_warp);
 #endif
+#ifdef MLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
+      if (wl->pointer_constraints)
+	zwp_pointer_constraints_v1_destroy(wl->pointer_constraints);
+#endif
 #ifdef MLX_WAYLAND_HAVE_DECORATION
       if (wl->decoration_manager)
 	zxdg_decoration_manager_v1_destroy(wl->decoration_manager);
@@ -165,6 +169,15 @@ static void	mlx__wayland_registry_global(void *data,
        just means mlx_mouse_move() stays unsupported on this backend */
     wl->pointer_warp = wl_registry_bind(registry, name,
 					 &wp_pointer_warp_v1_interface, 1);
+#endif
+#ifdef MLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
+  else if (strcmp(interface, zwp_pointer_constraints_v1_interface.name) == 0)
+    /* older, much more broadly supported fallback for mlx_mouse_move()
+       than pointer-warp-v1 - lock the pointer, set a position hint,
+       then unlock (see mlx__wayland_extra.c); no events on this
+       manager object itself, so no listener needed */
+    wl->pointer_constraints = wl_registry_bind(registry, name,
+						&zwp_pointer_constraints_v1_interface, 1);
 #endif
 #ifdef MLX_WAYLAND_HAVE_DECORATION
   else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)

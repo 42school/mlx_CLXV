@@ -35,6 +35,7 @@ SRC_WAYLAND=src/backend/mlx__wayland_init.c src/backend/mlx__wayland_window.c \
 # not part of SRC_WAYLAND: only compiled in when detected, see below,
 # but always cleaned so a stale .o from an earlier detection never lingers
 SRC_WAYLAND_POINTER_WARP=src/backend/mlx__wayland_pointer_warp_protocol.c
+SRC_WAYLAND_CONSTRAINTS=src/backend/mlx__wayland_constraints_protocol.c
 SRC_WAYLAND_DECORATION=src/backend/mlx__wayland_decoration_protocol.c
 SRC_VULKAN=src/gpu/mlx___vulkan_init.c src/gpu/mlx___vulkan_window.c src/gpu/mlx___vulkan_draw.c \
 	src/gpu/mlx___vulkan_image.c
@@ -45,7 +46,8 @@ SRC_VULKAN=src/gpu/mlx___vulkan_init.c src/gpu/mlx___vulkan_window.c src/gpu/mlx
 # up-to-date to Make (it only compares timestamps, not compiler flags)
 # and never gets recompiled for the new backend
 ALL_OBJ=$(sort $(patsubst %.c,%.o,$(SRC_GENERIC) $(SRC_XCB) $(SRC_WAYLAND) \
-	$(SRC_WAYLAND_POINTER_WARP) $(SRC_WAYLAND_DECORATION) $(SRC_VULKAN)))
+	$(SRC_WAYLAND_POINTER_WARP) $(SRC_WAYLAND_CONSTRAINTS) $(SRC_WAYLAND_DECORATION) \
+	$(SRC_VULKAN)))
 
 SRC=$(SRC_GENERIC)
 ifeq ($(BACKEND),wayland)
@@ -62,6 +64,14 @@ POINTER_WARP_XML:=$(WAYLAND_PROTOCOLS_DIR)/staging/pointer-warp/pointer-warp-v1.
 ifneq ($(wildcard $(POINTER_WARP_XML)),)
 SRC+=src/backend/mlx__wayland_pointer_warp_protocol.c
 CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_WARP
+endif
+# pointer-constraints (lock + set_cursor_position_hint + unlock) is a
+# much older/more broadly supported fallback for mlx_mouse_move() than
+# pointer-warp-v1 - it's what Xwayland itself uses to emulate XWarpPointer
+CONSTRAINTS_XML:=$(WAYLAND_PROTOCOLS_DIR)/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml
+ifneq ($(wildcard $(CONSTRAINTS_XML)),)
+SRC+=$(SRC_WAYLAND_CONSTRAINTS)
+CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
 endif
 # xdg-decoration is what lets a compositor draw a title bar/borders for
 # a plain xdg-shell window; without it a window stays undecorated if
@@ -85,6 +95,9 @@ ifeq ($(BACKEND),wayland)
 $(OBJ): src/backend/mlx__wayland_xdg_shell_protocol.h
 ifneq ($(wildcard $(POINTER_WARP_XML)),)
 $(OBJ): src/backend/mlx__wayland_pointer_warp_protocol.h
+endif
+ifneq ($(wildcard $(CONSTRAINTS_XML)),)
+$(OBJ): src/backend/mlx__wayland_constraints_protocol.h
 endif
 ifneq ($(wildcard $(DECORATION_XML)),)
 $(OBJ): src/backend/mlx__wayland_decoration_protocol.h
@@ -130,6 +143,12 @@ src/backend/mlx__wayland_pointer_warp_protocol.h: $(POINTER_WARP_XML)
 src/backend/mlx__wayland_pointer_warp_protocol.c: $(POINTER_WARP_XML) src/backend/mlx__wayland_pointer_warp_protocol.h
 	wayland-scanner private-code $< $@
 
+src/backend/mlx__wayland_constraints_protocol.h: $(CONSTRAINTS_XML)
+	wayland-scanner client-header $< $@
+
+src/backend/mlx__wayland_constraints_protocol.c: $(CONSTRAINTS_XML) src/backend/mlx__wayland_constraints_protocol.h
+	wayland-scanner private-code $< $@
+
 src/backend/mlx__wayland_decoration_protocol.h: $(DECORATION_XML)
 	wayland-scanner client-header $< $@
 
@@ -148,6 +167,6 @@ pypkg: $(NAME) pybuild.sh
 	cp python/dist/mlx*.whl .
 
 clean:
-	rm -rf $(NAME) $(ALL_OBJ) *~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ python/src/mlx.egg-info src/backend/mlx__wayland_xdg_shell_protocol.h src/backend/mlx__wayland_xdg_shell_protocol.c src/backend/mlx__wayland_pointer_warp_protocol.h src/backend/mlx__wayland_pointer_warp_protocol.c src/backend/mlx__wayland_decoration_protocol.h src/backend/mlx__wayland_decoration_protocol.c
+	rm -rf $(NAME) $(ALL_OBJ) *~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ python/src/mlx.egg-info src/backend/mlx__wayland_xdg_shell_protocol.h src/backend/mlx__wayland_xdg_shell_protocol.c src/backend/mlx__wayland_pointer_warp_protocol.h src/backend/mlx__wayland_pointer_warp_protocol.c src/backend/mlx__wayland_constraints_protocol.h src/backend/mlx__wayland_constraints_protocol.c src/backend/mlx__wayland_decoration_protocol.h src/backend/mlx__wayland_decoration_protocol.c
 
 re: clean all

@@ -90,6 +90,13 @@ if [ "$BACKEND" = "wayland" ]; then
         if [ -n "$WAYLAND_PROTOCOLS_DIR" ] && [ -f "$WAYLAND_PROTOCOLS_DIR/staging/pointer-warp/pointer-warp-v1.xml" ]; then
             echo "found"
         else
+            echo "not found"
+        fi
+
+        /bin/echo -n "Checking for pointer-constraints protocol (optional fallback for mlx_mouse_move)... "
+        if [ -n "$WAYLAND_PROTOCOLS_DIR" ] && [ -f "$WAYLAND_PROTOCOLS_DIR/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml" ]; then
+            echo "found"
+        else
             echo "not found - mlx_mouse_move() will be unsupported on this backend"
         fi
 

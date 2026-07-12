@@ -53,10 +53,13 @@
 **  time (see mlx_config.h / `make BACKEND=wayland`). The Wayland backend
 **  needs libwayland-client, libwayland-cursor, libxkbcommon, and the
 **  wayland-protocols package + wayland-scanner at build time.
-** Core Wayland has no pointer-warp protocol: mlx_mouse_move() only works on
-**  the Wayland backend if the compositor supports the still-in-testing
-**  pointer-warp-v1 extension (this is what Xwayland itself relies on to
-**  emulate XWarpPointer); it fails (-1) otherwise.
+** Core Wayland has no pointer-warp protocol: mlx_mouse_move() on the
+**  Wayland backend tries pointer-warp-v1 first (still in testing, only
+**  on recent Mutter/KWin), then falls back to the older and much more
+**  broadly supported pointer-constraints protocol (lock the pointer,
+**  set a position hint, unlock - the same trick Xwayland itself uses
+**  to emulate XWarpPointer); it fails (-1) only if the compositor
+**  supports neither.
 ** mlx_do_key_autorepeatoff/on() are no-ops on the Wayland backend, since
 **  wl_keyboard never auto-repeats key presses itself.
 ** Window decoration on the Wayland backend uses the compositor's own

@@ -8,6 +8,67 @@
 #include	"mlx__wayland_internal.h"
 
 
+#ifdef MLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
+/* only used to learn whether the lock actually activated before the
+   blocking round-trip below returns; mlx_mouse_move() is a synchronous
+   call, but lock_pointer() is inherently async (the compositor may
+   need e.g. the surface to already have pointer focus) */
+static void	mlx__wayland_lock_locked(void *data,
+					 struct zwp_locked_pointer_v1 *lock)
+{
+  (void)lock;
+  *(int *)data = 1;
+}
+
+static void	mlx__wayland_lock_unlocked(void *data,
+					   struct zwp_locked_pointer_v1 *lock)
+{
+  (void)data; (void)lock;
+}
+
+static const struct zwp_locked_pointer_v1_listener	mlx__wayland_lock_listener =
+  {
+    .locked = mlx__wayland_lock_locked,
+    .unlocked = mlx__wayland_lock_unlocked
+  };
+
+/* Xwayland's own trick for emulating XWarpPointer: lock the pointer,
+   set a cursor position hint, then unlock - the compositor "may warp
+   the cursor position to the set cursor position hint" on unlock. Far
+   more broadly supported than pointer-warp-v1 (this protocol has been
+   around since 2014/2015, used by any app doing FPS-style mouselook). */
+static int	mlx__wayland_extra_set_mouse_constraints(mlx__wayland_t *wl,
+							  mlx__wayland_win_t *win,
+							  int x, int y)
+{
+  struct zwp_locked_pointer_v1	*lock;
+  int				activated;
+
+  if (wl->pointer_constraints == NULL || wl->pointer == NULL)
+    return (-1);
+  lock = zwp_pointer_constraints_v1_lock_pointer(wl->pointer_constraints,
+						  win->surface, wl->pointer, NULL,
+						  ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_ONESHOT);
+  if (lock == NULL)
+    return (-1);
+  activated = 0;
+  zwp_locked_pointer_v1_add_listener(lock, &mlx__wayland_lock_listener, &activated);
+  wl_display_roundtrip(wl->display);   /* wait for the 'locked' event, if any */
+  if (activated == 0)
+    {
+      zwp_locked_pointer_v1_destroy(lock);
+      return (-1);
+    }
+  zwp_locked_pointer_v1_set_cursor_position_hint(lock, wl_fixed_from_int(x),
+						  wl_fixed_from_int(y));
+  wl_surface_commit(win->surface);
+  zwp_locked_pointer_v1_destroy(lock);   /* unlock: compositor may warp to the hint */
+  wl_display_roundtrip(wl->display);
+  return (0);
+}
+#endif
+
+
 static int	mlx__wayland_extra_set_mouse(mlx__wayland_t *wl,
 					     mlx__wayland_win_t *win,
 					     int x, int y)
@@ -16,8 +77,7 @@ static int	mlx__wayland_extra_set_mouse(mlx__wayland_t *wl,
 
 #ifdef MLX_WAYLAND_HAVE_POINTER_WARP
   /* pointer-warp-v1 is a staging protocol (not part of core Wayland
-     yet): available on recent Mutter/KWin, absent elsewhere - this is
-     exactly what Xwayland itself uses to emulate XWarpPointer */
+     yet): available on recent Mutter/KWin, absent elsewhere */
   if (wl->pointer_warp && wl->pointer)
     {
       wp_pointer_warp_v1_warp_pointer(wl->pointer_warp, win->surface,
@@ -26,16 +86,22 @@ static int	mlx__wayland_extra_set_mouse(mlx__wayland_t *wl,
 				       wl->pointer_enter_serial);
       return (0);
     }
-#else
+#endif
+#ifdef MLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
+  if (mlx__wayland_extra_set_mouse_constraints(wl, win, x, y) == 0)
+    return (0);
+#endif
+#if !defined(MLX_WAYLAND_HAVE_POINTER_WARP) && !defined(MLX_WAYLAND_HAVE_POINTER_CONSTRAINTS)
   (void)win; (void)x; (void)y;
 #endif
-  /* no pointer-warp support: core Wayland has no other way for a
-     client to move the cursor, only the compositor (or the user) can */
+  /* neither protocol is available (or the compositor supports
+     neither): core Wayland has no other way for a client to move the
+     cursor, only the compositor (or the user) can */
   (void)wl;
   if (warned == 0)
     {
       fprintf(stderr, "Mlx - Wayland: mlx_mouse_move() is not supported "
-	      "(compositor lacks the pointer-warp-v1 protocol)\n");
+	      "(compositor lacks both pointer-warp-v1 and pointer-constraints)\n");
       warned = 1;
     }
   return (-1);

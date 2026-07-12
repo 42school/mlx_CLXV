@@ -13,6 +13,9 @@
 #ifdef MLX_WAYLAND_HAVE_POINTER_WARP
 # include	"mlx__wayland_pointer_warp_protocol.h"
 #endif
+#ifdef MLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
+# include	"mlx__wayland_constraints_protocol.h"
+#endif
 #ifdef MLX_WAYLAND_HAVE_DECORATION
 # include	"mlx__wayland_decoration_protocol.h"
 #endif
@@ -75,6 +78,9 @@ typedef struct			mlx__wayland_s
   struct xdg_wm_base		*xdg_wm_base;
 #ifdef MLX_WAYLAND_HAVE_POINTER_WARP
   struct wp_pointer_warp_v1	*pointer_warp;
+#endif
+#ifdef MLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
+  struct zwp_pointer_constraints_v1	*pointer_constraints;
 #endif
 #ifdef MLX_WAYLAND_HAVE_DECORATION
   struct zxdg_decoration_manager_v1	*decoration_manager;
