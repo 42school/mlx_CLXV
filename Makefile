@@ -40,15 +40,6 @@ SRC_WAYLAND_DECORATION=src/backend/mlx__wayland_decoration_protocol.c
 SRC_VULKAN=src/gpu/mlx___vulkan_init.c src/gpu/mlx___vulkan_window.c src/gpu/mlx___vulkan_draw.c \
 	src/gpu/mlx___vulkan_image.c
 
-# every object file either backend could ever produce, regardless of the
-# BACKEND this particular invocation was made with - `clean` must remove
-# all of them, or a stale .o from a previous backend silently looks
-# up-to-date to Make (it only compares timestamps, not compiler flags)
-# and never gets recompiled for the new backend
-ALL_OBJ=$(sort $(patsubst %.c,%.o,$(SRC_GENERIC) $(SRC_XCB) $(SRC_WAYLAND) \
-	$(SRC_WAYLAND_POINTER_WARP) $(SRC_WAYLAND_CONSTRAINTS) $(SRC_WAYLAND_DECORATION) \
-	$(SRC_VULKAN)))
-
 SRC=$(SRC_GENERIC)
 ifeq ($(BACKEND),wayland)
 SRC+=$(SRC_WAYLAND) $(SRC_VULKAN)
@@ -166,7 +157,16 @@ pypkg: $(NAME) pybuild.sh
 	./pybuild.sh
 	cp python/dist/mlx*.whl .
 
+# wildcarded on directory rather than enumerated from the SRC_* lists
+# above, on purpose: a future backend/GPU (say src/backend/mlx__nswindow_*.c
+# + src/gpu/mlx___metal_*.c) is cleaned up for free, with nothing to add
+# here - same for src/backend/*_protocol.{h,c}, the generated Wayland
+# protocol bindings, whatever protocols get added later
 clean:
-	rm -rf $(NAME) $(ALL_OBJ) *~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ python/src/mlx.egg-info src/backend/mlx__wayland_xdg_shell_protocol.h src/backend/mlx__wayland_xdg_shell_protocol.c src/backend/mlx__wayland_pointer_warp_protocol.h src/backend/mlx__wayland_pointer_warp_protocol.c src/backend/mlx__wayland_constraints_protocol.h src/backend/mlx__wayland_constraints_protocol.c src/backend/mlx__wayland_decoration_protocol.h src/backend/mlx__wayland_decoration_protocol.c
+	rm -rf $(NAME) src/*.o src/backend/*.o src/gpu/*.o \
+		src/backend/*_protocol.h src/backend/*_protocol.c \
+		*~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* \
+		python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ \
+		python/src/mlx.egg-info
 
 re: clean all
