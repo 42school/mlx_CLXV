@@ -1,20 +1,31 @@
 # MinilibX Makefile
-# Just run `make`
-# To build the Wayland backend instead of XCB: `make BACKEND=wayland`
+# Just run `make` - defaults to the XCB backend.
+# To build the Wayland backend instead: `make BACKEND=wayland`
+#
+# Not sure which backend your system can build, or want one picked for
+# you automatically? Run `./configure.sh` (standalone, not through make)
+# first: it detects what's available and either builds automatically (one
+# option available), asks you (both available), or tells you what to
+# install (neither available) - then remembers the choice in
+# .mlx_config.mk for plain `make` to pick up. This can't happen within a
+# single `make` invocation: Make resolves the whole dependency graph
+# (which backend's sources/flags to use) before running any recipe,
+# including configure.sh - same reason a plain `./configure && make`
+# requires configure to run to completion before the build starts.
 #
 # If a Wayland build dependency is missing (e.g. wayland-protocols), run
-# `make BACKEND=wayland config` first to see configure.sh's diagnostic:
-# Make resolves the whole dependency graph before running any recipe, so
-# a missing package surfaces as Make's own opaque "No rule to make target"
-# error if you go straight to `make BACKEND=wayland` without configuring
-# first - same reason a plain `./configure && make` requires configure to
-# run to completion before the build starts.
+# `make BACKEND=wayland config` to see configure.sh's diagnostic without
+# attempting the actual build (which would otherwise fail with Make's own
+# opaque "No rule to make target" error instead of a clear message).
 
 # set explicitly rather than relying on "first rule in the file" - the
 # Wayland-only `$(OBJ): ...header.h` prerequisite rule below expands to
 # a long list of real object filenames, which would otherwise silently
 # become the first rule (and therefore the default goal) instead of `all`
 .DEFAULT_GOAL := all
+
+# picked up from a prior standalone ./configure.sh run, if any (see above)
+-include .mlx_config.mk
 
 BACKEND?=xcb
 

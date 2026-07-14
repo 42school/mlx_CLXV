@@ -3,6 +3,10 @@
 *.so
 *~
 
+# written by a standalone ./configure.sh run, remembers the auto-detected
+# or user-picked backend for plain `make` to pick up (see Makefile)
+.mlx_config.mk
+
 # generated at build time from the system's wayland-protocols package
 src/backend/mlx__wayland_xdg_shell_protocol.h
 src/backend/mlx__wayland_xdg_shell_protocol.c
