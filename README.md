@@ -7,9 +7,16 @@ The set of features is limited, on purpose, and is not meant to be extended. The
 
 
 ## Installation
-The current MinilibX version is designed to work under Linux, and requires the runtime and developper packages: vulkan, xcb, xcb-keysyms, bsd, zip.
+The current MinilibX version is designed to work under Linux, and supports two backends: XCB (default) and Wayland. XCB requires vulkan, xcb, xcb-keysyms, bsd, zlib. Wayland requires vulkan, wayland-client, wayland-cursor, xkbcommon, and the wayland-protocols package (+ wayland-scanner) at build time.
 
-Just use `make` to check the configuration, compile the library, and package the Python module. Edit the Makefile in order to enable the Vulkan validation layers.
+Not sure which backend your system can build, or want it picked for you? Run `./configure.sh` first, on its own, before `make`:
+- if only one backend's dependencies are available, it's selected automatically
+- if both are available, you're asked which one to build
+- if neither is, you're told exactly what to install
+
+The choice is remembered for the next plain `make`. This has to be a separate step before `make`, the same way a classic `./configure && make` works: `make` needs to already know which backend's sources/flags to use before it can run anything, including configure.sh itself.
+
+If you already know which backend you want, skip `./configure.sh` and just run `make` (defaults to XCB) or `make BACKEND=wayland`. Either way, `make` checks the configuration, compiles the library, and packages the Python module. Edit the Makefile in order to enable the Vulkan validation layers.
 
 ## Usage
 Read the associated manuals in the `man/` directory, starting with `man man/man3/mlx.3`
