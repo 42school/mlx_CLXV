@@ -120,7 +120,24 @@ LIBS= $(LIBS_BACKEND) -lvulkan -lz
 
 .PHONY: all config clean re pypkg
 
+# pypkg (the optional Python wheel) needs bash (pybuild.sh) and python3;
+# configure.sh already reports this, but `all` must not list pypkg as a
+# hard prerequisite when they're missing, or the C library build itself
+# would fail alongside the (expected, already-reported) skip
+HAVE_BASH:=$(shell command -v bash 2>/dev/null)
+HAVE_PYTHON3:=$(shell command -v python3 2>/dev/null)
+ifneq ($(HAVE_BASH),)
+ifneq ($(HAVE_PYTHON3),)
+BUILD_PYMOD=1
+endif
+endif
+
+ifeq ($(BUILD_PYMOD),1)
 all: config $(NAME) pypkg
+else
+all: config $(NAME)
+	@echo "Skipping the Python module: bash and/or python3 not found (see configure.sh above)"
+endif
 
 # .PHONY (not a real prerequisite check on configure.sh's mtime): this
 # must always actually run configure.sh, since it's the one place that

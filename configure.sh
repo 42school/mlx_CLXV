@@ -51,16 +51,29 @@ check_tool() {
     fi
 }
 
-# Dependencies needed by every backend (Vulkan itself, zlib for PNG)
+# Dependencies needed by every backend (a C compiler, make, Vulkan, zlib)
 check_common() {
     DEPS_OK=1
     MISSING=""
+    check_tool "${CC:-cc}" "a C compiler (clang or gcc)"
+    check_tool "make" "make"
     check_header "vulkan/vulkan.h" "vulkan-headers"
     check_lib "vulkan" "vulkan-loader-devel"
     check_header "zlib.h" "zlib-ng-compat-devel"
     check_lib "z" "zlib-ng-compat-devel"
     COMMON_OK=$DEPS_OK
     COMMON_MISSING="$MISSING"
+}
+
+# Only needed for `make`'s pypkg step (packaging the Python wheel); never
+# blocks the C library itself, so this is checked and reported separately
+check_python_module() {
+    DEPS_OK=1
+    MISSING=""
+    check_tool "bash" "bash"
+    check_tool "python3" "python3"
+    PYMOD_OK=$DEPS_OK
+    PYMOD_MISSING="$MISSING"
 }
 
 check_xcb() {
@@ -151,6 +164,14 @@ if [ "$COMMON_OK" -eq 0 ]; then
     echo "re-run ./configure.sh."
     rm -f a.out
     exit 1
+fi
+echo
+
+check_python_module
+if [ "$PYMOD_OK" -eq 0 ]; then
+    echo "⚠️  The MLX Python module won't be built, some tools are missing:"
+    printf '%b\n' "$PYMOD_MISSING"
+    echo "   (the C library itself is unaffected, only the optional Python wheel)"
 fi
 echo
 
