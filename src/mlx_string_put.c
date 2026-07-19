@@ -48,7 +48,8 @@ static void mlx_int_fill(unsigned char *data, int sl)
     
 }
 
-int mlx_string_put(void *mlx_ptr, void *win_ptr, int x, int y, int color, char *string)
+int mlx_string_put(void *mlx_ptr, void *win_ptr, unsigned int x, unsigned int y,
+		    unsigned int color, char *string)
 {
   static void *font = NULL;
   static unsigned char *data = NULL;

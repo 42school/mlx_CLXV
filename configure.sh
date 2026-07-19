@@ -35,6 +35,7 @@ check_lib() {
         DEPS_OK=0
         MISSING="$MISSING\n  - library: -l$LIBNAME\t\t=> $PKG"
     fi
+    rm -f a.out
 }
 
 # macOS has no single standard Vulkan install location (unlike Linux
@@ -135,7 +136,7 @@ check_appkit() {
     check_framework "QuartzCore" "Xcode Command Line Tools (xcode-select --install)"
     check_framework "ApplicationServices" "Xcode Command Line Tools (xcode-select --install)"
     check_header "vulkan/vulkan_metal.h" "vulkan-headers"
-    check_lib "vulkan" "vulkan-loader"
+    # -lvulkan itself is already checked unconditionally by check_common()
     /bin/echo -n "Checking for MoltenVK (Vulkan-on-Metal driver)... "
     MOLTENVK_PREFIX=$(find_darwin_prefix molten-vk lib/libMoltenVK.dylib)
     if [ -n "$MOLTENVK_PREFIX" ]; then
@@ -233,7 +234,6 @@ if [ "$COMMON_OK" -eq 0 ]; then
     echo
     echo "Install these first (needed no matter which backend you pick), then"
     echo "re-run ./configure.sh."
-    rm -f a.out
     exit 1
 fi
 echo
@@ -265,7 +265,6 @@ if [ -n "$BACKEND" ]; then
         OK=$XCB_OK
         MISS="$XCB_MISSING"
     fi
-    rm -f a.out
     echo
     if [ "$OK" -eq 1 ]; then
         report_ok "$BACKEND"
@@ -284,7 +283,6 @@ echo
 if [ "$PLATFORM" = "Darwin" ]; then
     check_appkit
     echo
-    rm -f a.out
     if [ "$APPKIT_OK" -eq 1 ]; then
         echo "AppKit's dependencies are available - selecting it."
         CHOSEN=appkit
@@ -307,7 +305,6 @@ check_xcb
 echo
 check_wayland
 echo
-rm -f a.out
 
 if [ "$XCB_OK" -eq 1 ] && [ "$WAYLAND_OK" -eq 1 ]; then
     echo "Both XCB and Wayland dependencies are available."

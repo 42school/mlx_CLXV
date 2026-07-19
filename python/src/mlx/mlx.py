@@ -24,7 +24,7 @@ class Mlx:
 
   def mlx_release(self, mlx_ptr):
     self.mlx_func.mlx_release.argtypes = [c_void_p]
-    self.mlx_func.mlx_release.restypes = [c_int]
+    self.mlx_func.mlx_release.restype = c_int
     return self.mlx_func.mlx_release(mlx_ptr)
 
 # Windows

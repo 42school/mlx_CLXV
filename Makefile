@@ -223,10 +223,10 @@ pypkg: $(NAME) pybuild.sh
 	cp python/dist/mlx*.whl .
 
 # wildcarded on directory rather than enumerated from the SRC_* lists
-# above, on purpose: a future backend/GPU (say src/backend/mlx__nswindow_*.c
-# + src/gpu/mlx___metal_*.c) is cleaned up for free, with nothing to add
-# here - same for src/backend/*_protocol.{h,c}, the generated Wayland
-# protocol bindings, whatever protocols get added later
+# above, on purpose: a future backend/GPU (say a Win32 backend, or a
+# non-Vulkan GPU path) is cleaned up for free, with nothing to add here -
+# same for src/backend/*_protocol.{h,c}, the generated Wayland protocol
+# bindings, whatever protocols get added later
 clean:
 	rm -rf $(NAME) src/*.o src/backend/*.o src/gpu/*.o \
 		src/backend/*_protocol.h src/backend/*_protocol.c \
