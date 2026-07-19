@@ -7,7 +7,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <bsd/bsd.h>
+#ifndef __APPLE__
+# include <bsd/bsd.h>   /* strlcpy: native to macOS/BSD libc, needs libbsd on Linux */
+#endif
 
 #include "mlx.h"
 

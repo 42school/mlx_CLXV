@@ -18,6 +18,9 @@
 #include	<wayland-client.h>
 #include	<vulkan/vulkan_wayland.h>
 #include	"backend/mlx__wayland_internal.h"
+#elif defined MLX_BACKEND && MLX_BACKEND == MLX_BACKEND_APPKIT
+#include	<vulkan/vulkan_metal.h>
+#include	"backend/mlx__appkit_internal.h"
 #endif
 
 
@@ -183,6 +186,15 @@ static VkResult	mlx___vulkan_surface(mlx___vulkan_t *vk, mlx___vulkan_win_t *vkw
   surf_info.surface = ((mlx__wayland_win_t *)(param->backend_win))->surface;
   return (vkCreateWaylandSurfaceKHR(vk->instance, &(surf_info), NULL,
 				    &(vkwin->surface)));
+#elif defined MLX_BACKEND && MLX_BACKEND == MLX_BACKEND_APPKIT
+  VkMetalSurfaceCreateInfoEXT	surf_info;
+
+  surf_info.pNext = NULL;
+  surf_info.flags = 0;
+  surf_info.sType = VK_STRUCTURE_TYPE_METAL_SURFACE_CREATE_INFO_EXT;
+  surf_info.pLayer = ((mlx__appkit_win_t *)(param->backend_win))->metal_layer;
+  return (vkCreateMetalSurfaceEXT(vk->instance, &(surf_info), NULL,
+				  &(vkwin->surface)));
 #endif
   return (VK_ERROR_UNKNOWN);
 }

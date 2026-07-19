@@ -1,6 +1,7 @@
 # MinilibX Makefile
 # Just run `make` - defaults to the XCB backend.
 # To build the Wayland backend instead: `make BACKEND=wayland`
+# To build the macOS/AppKit backend instead: `make BACKEND=appkit`
 #
 # Not sure which backend your system can build, or want one picked for
 # you automatically? Run `./configure.sh` (standalone, not through make)
@@ -48,11 +49,34 @@ SRC_WAYLAND=src/backend/mlx__wayland_init.c src/backend/mlx__wayland_window.c \
 SRC_WAYLAND_POINTER_WARP=src/backend/mlx__wayland_pointer_warp_protocol.c
 SRC_WAYLAND_CONSTRAINTS=src/backend/mlx__wayland_constraints_protocol.c
 SRC_WAYLAND_DECORATION=src/backend/mlx__wayland_decoration_protocol.c
+SRC_APPKIT=src/backend/mlx__appkit_init.m src/backend/mlx__appkit_window.m \
+	src/backend/mlx__appkit_util.m src/backend/mlx__appkit_event.m \
+	src/backend/mlx__appkit_hook.m src/backend/mlx__appkit_flush.m \
+	src/backend/mlx__appkit_extra.m
 SRC_VULKAN=src/gpu/mlx___vulkan_init.c src/gpu/mlx___vulkan_window.c src/gpu/mlx___vulkan_draw.c \
 	src/gpu/mlx___vulkan_image.c
 
+UNAME_S:=$(shell uname -s)
+
 SRC=$(SRC_GENERIC)
-ifeq ($(BACKEND),wayland)
+ifeq ($(BACKEND),appkit)
+SRC+=$(SRC_APPKIT) $(SRC_VULKAN)
+CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_APPKIT
+LIBS_BACKEND=-framework Cocoa -framework QuartzCore -framework ApplicationServices
+ifeq ($(UNAME_S),Darwin)
+# Homebrew installs vulkan-headers/vulkan-loader outside the compiler's
+# default search path (unlike Linux distro packages), locate them via
+# `brew --prefix` rather than hardcoding /opt/homebrew or /usr/local
+BREW_VULKAN_HEADERS:=$(shell brew --prefix vulkan-headers 2>/dev/null)
+BREW_VULKAN_LOADER:=$(shell brew --prefix vulkan-loader 2>/dev/null)
+ifneq ($(BREW_VULKAN_HEADERS),)
+CFLAGS+=-I$(BREW_VULKAN_HEADERS)/include
+endif
+ifneq ($(BREW_VULKAN_LOADER),)
+LDFLAGS+=-L$(BREW_VULKAN_LOADER)/lib -Wl,-rpath,$(BREW_VULKAN_LOADER)/lib
+endif
+endif
+else ifeq ($(BACKEND),wayland)
 SRC+=$(SRC_WAYLAND) $(SRC_VULKAN)
 CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_WAYLAND
 LIBS_BACKEND=-lwayland-client -lwayland-cursor -lxkbcommon
@@ -89,7 +113,14 @@ CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_XCB
 LIBS_BACKEND=-lxcb -lxcb-keysyms -lbsd
 endif
 
-OBJ=$(SRC:.c=.o)
+OBJ=$(patsubst %.m,%.o,$(SRC:.c=.o))
+
+# explicit rule for the AppKit backend's Objective-C sources (MRC, not
+# ARC: plain C structs in mlx__appkit_internal.h hold raw object
+# pointers) - overrides Make's built-in .m.o rule, which uses $(OBJC)/
+# $(OBJCFLAGS) instead of our own $(CC)/$(CFLAGS)
+%.o: %.m
+	$(CC) $(CFLAGS) -fno-objc-arc -c -o $@ $<
 
 ifeq ($(BACKEND),wayland)
 # every wayland source transitively includes the generated xdg-shell

@@ -12,7 +12,7 @@ check_header() {
     HEADER="$1"
 	PKG="$2"
     /bin/echo -n "Checking for header <$HEADER>... "
-    echo "#include <$HEADER>" | ${CC:-cc} -E - >/dev/null 2>&1
+    echo "#include <$HEADER>" | ${CC:-cc} $CFLAGS -E - >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "found"
     else
@@ -27,13 +27,29 @@ check_lib() {
     LIBNAME="$1"
     PKG="$2"  # package probable
     /bin/echo -n "Checking for library -l$LIBNAME... "
-    echo "int main() { return 0; }" | ${CC:-cc} -x c - -l$LIBNAME >/dev/null 2>&1
+    echo "int main() { return 0; }" | ${CC:-cc} -x c - $CFLAGS $LDFLAGS -l$LIBNAME >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         echo "found"
     else
         echo "not found"
         DEPS_OK=0
         MISSING="$MISSING\n  - library: -l$LIBNAME\t\t=> $PKG"
+    fi
+}
+
+# Fonction de test d'un framework Apple (pas de header/lib au sens Linux)
+check_framework() {
+    FRAMEWORK="$1"
+    PKG="$2"
+    /bin/echo -n "Checking for framework $FRAMEWORK... "
+    echo "int main(){return 0;}" | ${CC:-cc} -x objective-c - -framework "$FRAMEWORK" -o /tmp/mlx_ak_check.$$ >/dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo "found"
+        rm -f /tmp/mlx_ak_check.$$
+    else
+        echo "not found"
+        DEPS_OK=0
+        MISSING="$MISSING\n  - framework: $FRAMEWORK\t\t=> $PKG"
     fi
 }
 
@@ -88,6 +104,32 @@ check_xcb() {
     check_lib "bsd" "libbsd-devel"
     XCB_OK=$DEPS_OK
     XCB_MISSING="$MISSING"
+}
+
+check_appkit() {
+    DEPS_OK=1
+    MISSING=""
+    check_framework "Cocoa" "Xcode Command Line Tools (xcode-select --install)"
+    check_framework "QuartzCore" "Xcode Command Line Tools (xcode-select --install)"
+    check_framework "ApplicationServices" "Xcode Command Line Tools (xcode-select --install)"
+    check_header "vulkan/vulkan_metal.h" "vulkan-headers"
+    check_lib "vulkan" "vulkan-loader"
+    /bin/echo -n "Checking for MoltenVK (Vulkan-on-Metal driver)... "
+    BREW_MOLTENVK=""
+    if command -v brew >/dev/null 2>&1; then
+        BREW_MOLTENVK=$(brew --prefix molten-vk 2>/dev/null)
+    fi
+    if [ -n "$BREW_MOLTENVK" ] && [ -f "$BREW_MOLTENVK/lib/libMoltenVK.dylib" ]; then
+        echo "found ($BREW_MOLTENVK)"
+    elif [ -f "/opt/homebrew/lib/libMoltenVK.dylib" ] || [ -f "/usr/local/lib/libMoltenVK.dylib" ]; then
+        echo "found"
+    else
+        echo "not found"
+        DEPS_OK=0
+        MISSING="$MISSING\n  - library: libMoltenVK.dylib\t\t=> molten-vk (brew install molten-vk)"
+    fi
+    APPKIT_OK=$DEPS_OK
+    APPKIT_MISSING="$MISSING"
 }
 
 check_wayland() {
@@ -150,9 +192,22 @@ report_missing() {
 
 PLATFORM=$(uname -s)
 echo "Platform: $PLATFORM"
-if [ "$PLATFORM" != "Linux" ]; then
-    echo "⚠️  Both backends assume Linux (X11/Wayland protocols, memfd_create,"
-    echo "    evdev keycodes...); this may not build or run correctly on $PLATFORM."
+if [ "$PLATFORM" = "Darwin" ]; then
+    echo "  -> use the AppKit backend on macOS: make BACKEND=appkit"
+    # Homebrew installs vulkan-headers/vulkan-loader outside the
+    # compiler's default search path (unlike Linux distro packages);
+    # locate them via `brew --prefix` so check_header/check_lib below
+    # (and check_appkit's own checks) actually find them
+    if command -v brew >/dev/null 2>&1; then
+        BREW_VULKAN_HEADERS=$(brew --prefix vulkan-headers 2>/dev/null)
+        BREW_VULKAN_LOADER=$(brew --prefix vulkan-loader 2>/dev/null)
+        [ -n "$BREW_VULKAN_HEADERS" ] && CFLAGS="$CFLAGS -I$BREW_VULKAN_HEADERS/include"
+        [ -n "$BREW_VULKAN_LOADER" ] && LDFLAGS="$LDFLAGS -L$BREW_VULKAN_LOADER/lib"
+    fi
+elif [ "$PLATFORM" != "Linux" ]; then
+    echo "⚠️  The XCB and Wayland backends assume Linux (X11/Wayland protocols,"
+    echo "    memfd_create, evdev keycodes...); this may not build or run"
+    echo "    correctly on $PLATFORM. The AppKit backend targets macOS only."
 fi
 echo
 
@@ -185,6 +240,10 @@ if [ -n "$BACKEND" ]; then
         check_wayland
         OK=$WAYLAND_OK
         MISS="$WAYLAND_MISSING"
+    elif [ "$BACKEND" = "appkit" ]; then
+        check_appkit
+        OK=$APPKIT_OK
+        MISS="$APPKIT_MISSING"
     else
         check_xcb
         OK=$XCB_OK
@@ -203,8 +262,31 @@ if [ -n "$BACKEND" ]; then
     exit 1
 fi
 
-echo "No backend requested (BACKEND is not set) - checking both and deciding..."
+echo "No backend requested (BACKEND is not set) - checking what's available..."
 echo
+
+if [ "$PLATFORM" = "Darwin" ]; then
+    check_appkit
+    echo
+    rm -f a.out
+    if [ "$APPKIT_OK" -eq 1 ]; then
+        echo "AppKit's dependencies are available - selecting it."
+        CHOSEN=appkit
+    else
+        echo "❌ The AppKit backend's dependencies are not fully available."
+        echo
+        report_missing "AppKit" "$APPKIT_MISSING"
+        echo
+        echo "Install what you need, then re-run ./configure.sh."
+        exit 1
+    fi
+    echo "BACKEND=$CHOSEN" > .mlx_config.mk
+    echo
+    echo "✅ Selected backend: $CHOSEN (remembered in .mlx_config.mk)"
+    echo "Run 'make' to build it."
+    exit 0
+fi
+
 check_xcb
 echo
 check_wayland

@@ -7,6 +7,8 @@
 # include	"backend/mlx__xcb.h"
 #elif MLX_BACKEND == MLX_BACKEND_WAYLAND
 # include	"backend/mlx__wayland.h"
+#elif MLX_BACKEND == MLX_BACKEND_APPKIT
+# include	"backend/mlx__appkit.h"
 #endif
 #include	"gpu/mlx___vulkan.h"
 
@@ -33,6 +35,14 @@ mlx_backend_hooks_t mlx_backend_hooks[] = {
    mlx__wayland_event_hook, mlx__wayland_event_get, mlx__wayland_event_handle,
    mlx__wayland_flush, NULL,
    mlx__wayland_extra},
+#elif MLX_BACKEND == MLX_BACKEND_APPKIT
+  [MLX_BACKEND_APPKIT] =
+  {mlx__appkit_init, mlx__appkit_destroy,
+   mlx__appkit_window, NULL, mlx__appkit_window_destroy,
+   NULL, NULL,
+   mlx__appkit_event_hook, mlx__appkit_event_get, mlx__appkit_event_handle,
+   mlx__appkit_flush, NULL,
+   mlx__appkit_extra},
 #endif
 };
 
