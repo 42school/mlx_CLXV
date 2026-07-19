@@ -61,7 +61,7 @@ UNAME_S:=$(shell uname -s)
 SRC=$(SRC_GENERIC)
 ifeq ($(BACKEND),appkit)
 SRC+=$(SRC_APPKIT) $(SRC_VULKAN)
-CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_APPKIT
+override CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_APPKIT
 LIBS_BACKEND=-framework Cocoa -framework QuartzCore -framework ApplicationServices
 ifeq ($(UNAME_S),Darwin)
 # macOS has no single standard Vulkan install location (unlike Linux
@@ -75,15 +75,15 @@ VULKAN_LOADER_CANDIDATES:=$(VULKAN_SDK) $(if $(BREW_PREFIX),$(BREW_PREFIX)/opt/v
 VULKAN_HEADERS_PREFIX:=$(firstword $(foreach p,$(VULKAN_HEADERS_CANDIDATES),$(if $(wildcard $(p)/include/vulkan/vulkan.h),$(p))))
 VULKAN_LOADER_PREFIX:=$(firstword $(foreach p,$(VULKAN_LOADER_CANDIDATES),$(if $(wildcard $(p)/lib/libvulkan.dylib),$(p))))
 ifneq ($(VULKAN_HEADERS_PREFIX),)
-CFLAGS+=-I$(VULKAN_HEADERS_PREFIX)/include
+override CFLAGS+=-I$(VULKAN_HEADERS_PREFIX)/include
 endif
 ifneq ($(VULKAN_LOADER_PREFIX),)
-LDFLAGS+=-L$(VULKAN_LOADER_PREFIX)/lib -Wl,-rpath,$(VULKAN_LOADER_PREFIX)/lib
+override LDFLAGS+=-L$(VULKAN_LOADER_PREFIX)/lib -Wl,-rpath,$(VULKAN_LOADER_PREFIX)/lib
 endif
 endif
 else ifeq ($(BACKEND),wayland)
 SRC+=$(SRC_WAYLAND) $(SRC_VULKAN)
-CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_WAYLAND
+override CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_WAYLAND
 LIBS_BACKEND=-lwayland-client -lwayland-cursor -lxkbcommon
 WAYLAND_PROTOCOLS_DIR:=$(shell pkg-config --variable=pkgdatadir wayland-protocols)
 XDG_SHELL_XML:=$(WAYLAND_PROTOCOLS_DIR)/stable/xdg-shell/xdg-shell.xml
@@ -94,7 +94,7 @@ XDG_SHELL_XML:=$(WAYLAND_PROTOCOLS_DIR)/stable/xdg-shell/xdg-shell.xml
 POINTER_WARP_XML:=$(WAYLAND_PROTOCOLS_DIR)/staging/pointer-warp/pointer-warp-v1.xml
 ifneq ($(wildcard $(POINTER_WARP_XML)),)
 SRC+=src/backend/mlx__wayland_pointer_warp_protocol.c
-CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_WARP
+override CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_WARP
 endif
 # pointer-constraints (lock + set_cursor_position_hint + unlock) is a
 # much older/more broadly supported fallback for mlx_mouse_move() than
@@ -102,7 +102,7 @@ endif
 CONSTRAINTS_XML:=$(WAYLAND_PROTOCOLS_DIR)/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml
 ifneq ($(wildcard $(CONSTRAINTS_XML)),)
 SRC+=$(SRC_WAYLAND_CONSTRAINTS)
-CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
+override CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
 endif
 # xdg-decoration is what lets a compositor draw a title bar/borders for
 # a plain xdg-shell window; without it a window stays undecorated if
@@ -110,11 +110,11 @@ endif
 DECORATION_XML:=$(WAYLAND_PROTOCOLS_DIR)/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
 ifneq ($(wildcard $(DECORATION_XML)),)
 SRC+=$(SRC_WAYLAND_DECORATION)
-CFLAGS+=-DMLX_WAYLAND_HAVE_DECORATION
+override CFLAGS+=-DMLX_WAYLAND_HAVE_DECORATION
 endif
 else
 SRC+=$(SRC_XCB) $(SRC_VULKAN)
-CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_XCB
+override CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_XCB
 LIBS_BACKEND=-lxcb -lxcb-keysyms -lbsd
 endif
 
@@ -146,8 +146,14 @@ endif
 VK_DEBUG=
 
 INCLUDES=-I./src
-CFLAGS+= $(INCLUDES) $(VK_DEBUG) -fPIC -Wall -O3
-LDFLAGS+=
+# 'override' on every CFLAGS/LDFLAGS append in this file (not just this
+# one): without it, a user-supplied `make CFLAGS=...`/`LDFLAGS=...` on
+# the command line would silently replace these appends instead of
+# adding to them - Make only lets '+=' win over a command-line-set
+# variable when the assignment is explicitly marked 'override' (a plain
+# environment variable, e.g. `CFLAGS=... make`, doesn't have this
+# problem: '+=' always builds on top of that regardless)
+override CFLAGS+= $(INCLUDES) $(VK_DEBUG) -fPIC -Wall -O3
 
 CC=clang
 
@@ -180,8 +186,14 @@ endif
 # reports missing dependencies - a stale/skipped run here would let a
 # broken environment silently fall through to a wayland-scanner/clang
 # failure instead of configure's clear diagnostic
+#
+# CFLAGS/LDFLAGS are passed explicitly (not just inherited) because Make
+# only auto-exports a variable to a recipe's environment when it is
+# untouched command-line/environment origin - the 'override CFLAGS+=...'
+# lines above mean this combined value would otherwise never reach
+# configure.sh's own $CFLAGS/$LDFLAGS-based header/lib checks
 config:
-	BACKEND=$(BACKEND) ./configure.sh
+	BACKEND=$(BACKEND) CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' ./configure.sh
 
 # xdg-shell is the only Wayland protocol extension needed (window
 # management); its client bindings are generated at build time from

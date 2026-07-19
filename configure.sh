@@ -273,7 +273,7 @@ if [ -n "$BACKEND" ]; then
     report_missing "the $BACKEND backend" "$MISS"
     echo
     echo "You may need to install missing packages or specify include/library paths:"
-    echo "  e.g.  ./configure.sh CFLAGS='-I/path/to/include' LDFLAGS='-L/path/to/lib'"
+    echo "  e.g.  CFLAGS='-I/path/to/include' LDFLAGS='-L/path/to/lib' ./configure.sh"
     exit 1
 fi
 
