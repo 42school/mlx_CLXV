@@ -182,6 +182,7 @@ pypkg: $(NAME) pybuild.sh
 	@echo "Building Python package"
 	cp $(NAME) python/src/mlx/
 	cp src/mlx.h man/man3/* python/src/mlx/docs/
+	cp version python/version
 	./pybuild.sh
 	cp python/dist/mlx*.whl .
 
@@ -195,6 +196,6 @@ clean:
 		src/backend/*_protocol.h src/backend/*_protocol.c \
 		*~ src/*~ src/backend/*~ src/gpu/*~ venv python/src/mlx/docs/* \
 		python/src/mlx/$(NAME) python/dist test/*~ mlx*.whl python/*~ \
-		python/src/mlx.egg-info
+		python/src/mlx.egg-info python/version
 
 re: clean all

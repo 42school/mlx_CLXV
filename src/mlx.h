@@ -13,7 +13,7 @@
 */
 
 
-/* mlx_CLXV version 2.2 */
+/* mlx_CLXV version 2.3 */
 
 /*
 **
