@@ -37,6 +37,25 @@ check_lib() {
     fi
 }
 
+# macOS has no single standard Vulkan install location (unlike Linux
+# distro packages): the LunarG SDK sets $VULKAN_SDK (via its
+# setup-env.sh), Homebrew installs under its own prefix (which itself
+# differs between Apple Silicon's /opt/homebrew and Intel's /usr/local),
+# and some people just copy things into /usr/local by hand - try each
+# candidate rather than assuming any one of them (BREW_PREFIX is set once,
+# below, before this is ever called)
+find_darwin_prefix() {
+    FORMULA="$1"
+    CHECK_PATH="$2"
+    for p in "$VULKAN_SDK" "$BREW_PREFIX/opt/$FORMULA" "/opt/homebrew/opt/$FORMULA" "/usr/local/opt/$FORMULA" "/opt/homebrew" "/usr/local"; do
+        if [ -n "$p" ] && [ -e "$p/$CHECK_PATH" ]; then
+            echo "$p"
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Fonction de test d'un framework Apple (pas de header/lib au sens Linux)
 check_framework() {
     FRAMEWORK="$1"
@@ -115,18 +134,13 @@ check_appkit() {
     check_header "vulkan/vulkan_metal.h" "vulkan-headers"
     check_lib "vulkan" "vulkan-loader"
     /bin/echo -n "Checking for MoltenVK (Vulkan-on-Metal driver)... "
-    BREW_MOLTENVK=""
-    if command -v brew >/dev/null 2>&1; then
-        BREW_MOLTENVK=$(brew --prefix molten-vk 2>/dev/null)
-    fi
-    if [ -n "$BREW_MOLTENVK" ] && [ -f "$BREW_MOLTENVK/lib/libMoltenVK.dylib" ]; then
-        echo "found ($BREW_MOLTENVK)"
-    elif [ -f "/opt/homebrew/lib/libMoltenVK.dylib" ] || [ -f "/usr/local/lib/libMoltenVK.dylib" ]; then
-        echo "found"
+    MOLTENVK_PREFIX=$(find_darwin_prefix molten-vk lib/libMoltenVK.dylib)
+    if [ -n "$MOLTENVK_PREFIX" ]; then
+        echo "found ($MOLTENVK_PREFIX)"
     else
         echo "not found"
         DEPS_OK=0
-        MISSING="$MISSING\n  - library: libMoltenVK.dylib\t\t=> molten-vk (brew install molten-vk)"
+        MISSING="$MISSING\n  - library: libMoltenVK.dylib\t\t=> molten-vk (via Homebrew: brew install molten-vk; or the LunarG Vulkan SDK)"
     fi
     APPKIT_OK=$DEPS_OK
     APPKIT_MISSING="$MISSING"
@@ -194,16 +208,15 @@ PLATFORM=$(uname -s)
 echo "Platform: $PLATFORM"
 if [ "$PLATFORM" = "Darwin" ]; then
     echo "  -> use the AppKit backend on macOS: make BACKEND=appkit"
-    # Homebrew installs vulkan-headers/vulkan-loader outside the
-    # compiler's default search path (unlike Linux distro packages);
-    # locate them via `brew --prefix` so check_header/check_lib below
-    # (and check_appkit's own checks) actually find them
-    if command -v brew >/dev/null 2>&1; then
-        BREW_VULKAN_HEADERS=$(brew --prefix vulkan-headers 2>/dev/null)
-        BREW_VULKAN_LOADER=$(brew --prefix vulkan-loader 2>/dev/null)
-        [ -n "$BREW_VULKAN_HEADERS" ] && CFLAGS="$CFLAGS -I$BREW_VULKAN_HEADERS/include"
-        [ -n "$BREW_VULKAN_LOADER" ] && LDFLAGS="$LDFLAGS -L$BREW_VULKAN_LOADER/lib"
-    fi
+    BREW_PREFIX=""
+    command -v brew >/dev/null 2>&1 && BREW_PREFIX=$(brew --prefix 2>/dev/null)
+    # find_darwin_prefix (defined above) so check_header/check_lib below
+    # (and check_appkit's own checks) actually find things, regardless of
+    # whether Vulkan came from the LunarG SDK, Homebrew, or a manual copy
+    VULKAN_HEADERS_PREFIX=$(find_darwin_prefix vulkan-headers include/vulkan/vulkan.h)
+    VULKAN_LOADER_PREFIX=$(find_darwin_prefix vulkan-loader lib/libvulkan.dylib)
+    [ -n "$VULKAN_HEADERS_PREFIX" ] && CFLAGS="$CFLAGS -I$VULKAN_HEADERS_PREFIX/include"
+    [ -n "$VULKAN_LOADER_PREFIX" ] && LDFLAGS="$LDFLAGS -L$VULKAN_LOADER_PREFIX/lib"
 elif [ "$PLATFORM" != "Linux" ]; then
     echo "⚠️  The XCB and Wayland backends assume Linux (X11/Wayland protocols,"
     echo "    memfd_create, evdev keycodes...); this may not build or run"

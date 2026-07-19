@@ -64,16 +64,26 @@ SRC+=$(SRC_APPKIT) $(SRC_VULKAN)
 CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_APPKIT
 LIBS_BACKEND=-framework Cocoa -framework QuartzCore -framework ApplicationServices
 ifeq ($(UNAME_S),Darwin)
-# Homebrew installs vulkan-headers/vulkan-loader outside the compiler's
-# default search path (unlike Linux distro packages), locate them via
-# `brew --prefix` rather than hardcoding /opt/homebrew or /usr/local
-BREW_VULKAN_HEADERS:=$(shell brew --prefix vulkan-headers 2>/dev/null)
-BREW_VULKAN_LOADER:=$(shell brew --prefix vulkan-loader 2>/dev/null)
-ifneq ($(BREW_VULKAN_HEADERS),)
-CFLAGS+=-I$(BREW_VULKAN_HEADERS)/include
+# macOS has no single standard Vulkan install location (unlike Linux
+# distro packages): the LunarG SDK sets $VULKAN_SDK (via its
+# setup-env.sh), Homebrew installs under its own prefix (which itself
+# differs between Apple Silicon's /opt/homebrew and Intel's /usr/local),
+# and some people just copy things into /usr/local by hand - try each
+# rather than assuming any one of them
+BREW_PREFIX:=$(shell command -v brew >/dev/null 2>&1 && brew --prefix 2>/dev/null)
+VULKAN_HEADERS_CANDIDATES:=$(VULKAN_SDK) $(BREW_PREFIX)/opt/vulkan-headers \
+	/opt/homebrew/opt/vulkan-headers /usr/local/opt/vulkan-headers \
+	/opt/homebrew /usr/local
+VULKAN_LOADER_CANDIDATES:=$(VULKAN_SDK) $(BREW_PREFIX)/opt/vulkan-loader \
+	/opt/homebrew/opt/vulkan-loader /usr/local/opt/vulkan-loader \
+	/opt/homebrew /usr/local
+VULKAN_HEADERS_PREFIX:=$(firstword $(foreach p,$(VULKAN_HEADERS_CANDIDATES),$(if $(wildcard $(p)/include/vulkan/vulkan.h),$(p))))
+VULKAN_LOADER_PREFIX:=$(firstword $(foreach p,$(VULKAN_LOADER_CANDIDATES),$(if $(wildcard $(p)/lib/libvulkan.dylib),$(p))))
+ifneq ($(VULKAN_HEADERS_PREFIX),)
+CFLAGS+=-I$(VULKAN_HEADERS_PREFIX)/include
 endif
-ifneq ($(BREW_VULKAN_LOADER),)
-LDFLAGS+=-L$(BREW_VULKAN_LOADER)/lib -Wl,-rpath,$(BREW_VULKAN_LOADER)/lib
+ifneq ($(VULKAN_LOADER_PREFIX),)
+LDFLAGS+=-L$(VULKAN_LOADER_PREFIX)/lib -Wl,-rpath,$(VULKAN_LOADER_PREFIX)/lib
 endif
 endif
 else ifeq ($(BACKEND),wayland)
