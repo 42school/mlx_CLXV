@@ -39,15 +39,18 @@ check_lib() {
 
 # macOS has no single standard Vulkan install location (unlike Linux
 # distro packages): the LunarG SDK sets $VULKAN_SDK (via its
-# setup-env.sh), Homebrew installs under its own prefix (which itself
-# differs between Apple Silicon's /opt/homebrew and Intel's /usr/local),
-# and some people just copy things into /usr/local by hand - try each
-# candidate rather than assuming any one of them (BREW_PREFIX is set once,
-# below, before this is ever called)
+# setup-env.sh); otherwise, if Homebrew is installed, ask it directly
+# for its prefix with `brew --prefix` rather than guessing a path (its
+# default differs by CPU architecture, and can be customized besides) -
+# BREW_PREFIX is set once, below, before this is ever called
 find_darwin_prefix() {
     FORMULA="$1"
     CHECK_PATH="$2"
-    for p in "$VULKAN_SDK" "$BREW_PREFIX/opt/$FORMULA" "/opt/homebrew/opt/$FORMULA" "/usr/local/opt/$FORMULA" "/opt/homebrew" "/usr/local"; do
+    CANDIDATES="$VULKAN_SDK"
+    if [ -n "$BREW_PREFIX" ]; then
+        CANDIDATES="$CANDIDATES $BREW_PREFIX/opt/$FORMULA $BREW_PREFIX"
+    fi
+    for p in $CANDIDATES; do
         if [ -n "$p" ] && [ -e "$p/$CHECK_PATH" ]; then
             echo "$p"
             return 0

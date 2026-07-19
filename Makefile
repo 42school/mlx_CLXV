@@ -66,17 +66,12 @@ LIBS_BACKEND=-framework Cocoa -framework QuartzCore -framework ApplicationServic
 ifeq ($(UNAME_S),Darwin)
 # macOS has no single standard Vulkan install location (unlike Linux
 # distro packages): the LunarG SDK sets $VULKAN_SDK (via its
-# setup-env.sh), Homebrew installs under its own prefix (which itself
-# differs between Apple Silicon's /opt/homebrew and Intel's /usr/local),
-# and some people just copy things into /usr/local by hand - try each
-# rather than assuming any one of them
+# setup-env.sh); otherwise, if Homebrew is installed, ask it directly
+# for its prefix with `brew --prefix` rather than guessing a path (its
+# default differs by CPU architecture, and can be customized besides)
 BREW_PREFIX:=$(shell command -v brew >/dev/null 2>&1 && brew --prefix 2>/dev/null)
-VULKAN_HEADERS_CANDIDATES:=$(VULKAN_SDK) $(BREW_PREFIX)/opt/vulkan-headers \
-	/opt/homebrew/opt/vulkan-headers /usr/local/opt/vulkan-headers \
-	/opt/homebrew /usr/local
-VULKAN_LOADER_CANDIDATES:=$(VULKAN_SDK) $(BREW_PREFIX)/opt/vulkan-loader \
-	/opt/homebrew/opt/vulkan-loader /usr/local/opt/vulkan-loader \
-	/opt/homebrew /usr/local
+VULKAN_HEADERS_CANDIDATES:=$(VULKAN_SDK) $(if $(BREW_PREFIX),$(BREW_PREFIX)/opt/vulkan-headers $(BREW_PREFIX))
+VULKAN_LOADER_CANDIDATES:=$(VULKAN_SDK) $(if $(BREW_PREFIX),$(BREW_PREFIX)/opt/vulkan-loader $(BREW_PREFIX))
 VULKAN_HEADERS_PREFIX:=$(firstword $(foreach p,$(VULKAN_HEADERS_CANDIDATES),$(if $(wildcard $(p)/include/vulkan/vulkan.h),$(p))))
 VULKAN_LOADER_PREFIX:=$(firstword $(foreach p,$(VULKAN_LOADER_CANDIDATES),$(if $(wildcard $(p)/lib/libvulkan.dylib),$(p))))
 ifneq ($(VULKAN_HEADERS_PREFIX),)
