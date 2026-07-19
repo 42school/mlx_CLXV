@@ -13,7 +13,7 @@
 */
 
 
-/* mlx_CLXV version 2.2 */
+/* mlx_CLXV version 2.3 */
 
 /*
 **
@@ -48,6 +48,26 @@
 **  content of the window.
 ** With Wayland, there is no such thing like Expose event, and the compositor saves
 **  the window's content.
+**
+** Two backends are available: XCB (default) and Wayland, selected at build
+**  time (see mlx_config.h / `make BACKEND=wayland`). The Wayland backend
+**  needs libwayland-client, libwayland-cursor, libxkbcommon, and the
+**  wayland-protocols package + wayland-scanner at build time.
+** Core Wayland has no pointer-warp protocol: mlx_mouse_move() on the
+**  Wayland backend tries pointer-warp-v1 first (still in testing, only
+**  on recent Mutter/KWin), then falls back to the older and much more
+**  broadly supported pointer-constraints protocol (lock the pointer,
+**  set a position hint, unlock - the same trick Xwayland itself uses
+**  to emulate XWarpPointer); it fails (-1) only if the compositor
+**  supports neither.
+** mlx_do_key_autorepeatoff/on() are no-ops on the Wayland backend, since
+**  wl_keyboard never auto-repeats key presses itself.
+** Window decoration on the Wayland backend uses the compositor's own
+**  server-side decoration (title bar, close button) when the compositor
+**  supports the xdg-decoration extension and grants it. Otherwise (e.g.
+**  GNOME/Mutter, which enforces client-side decoration) mlx draws its
+**  own minimal title bar instead, with a close button and support for
+**  moving the window by dragging it.
 **
 */
 

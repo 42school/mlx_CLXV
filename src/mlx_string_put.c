@@ -1,8 +1,7 @@
 
 
 #include "mlx_internal.h"
-
-#include "mlx_font.c"
+#include "mlx_font.h"
 
 #define ATLAS_NB_CHAR 95
 

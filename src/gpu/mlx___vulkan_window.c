@@ -14,6 +14,10 @@
 #include	<xcb/xcb_keysyms.h>
 #include	<vulkan/vulkan_xcb.h>
 #include	"backend/mlx__xcb_internal.h"
+#elif defined MLX_BACKEND && MLX_BACKEND == MLX_BACKEND_WAYLAND
+#include	<wayland-client.h>
+#include	<vulkan/vulkan_wayland.h>
+#include	"backend/mlx__wayland_internal.h"
 #endif
 
 
@@ -169,6 +173,16 @@ static VkResult	mlx___vulkan_surface(mlx___vulkan_t *vk, mlx___vulkan_win_t *vkw
   surf_info.window = ((mlx__xcb_win_t *)(param->backend_win))->win_id;
   return (vkCreateXcbSurfaceKHR(vk->instance, &(surf_info), NULL,
 				&(vkwin->surface)));
+#elif defined MLX_BACKEND && MLX_BACKEND == MLX_BACKEND_WAYLAND
+  VkWaylandSurfaceCreateInfoKHR	surf_info;
+
+  surf_info.pNext = NULL;
+  surf_info.flags = 0;
+  surf_info.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
+  surf_info.display = ((mlx__wayland_t *)(param->backend))->display;
+  surf_info.surface = ((mlx__wayland_win_t *)(param->backend_win))->surface;
+  return (vkCreateWaylandSurfaceKHR(vk->instance, &(surf_info), NULL,
+				    &(vkwin->surface)));
 #endif
   return (VK_ERROR_UNKNOWN);
 }
@@ -275,26 +289,39 @@ static int	mlx___vulkan_swap_chain(mlx___vulkan_t *vk,
     return (VK_ERROR_UNKNOWN);
   vkGetPhysicalDeviceSurfaceFormatsKHR(vk->devices[vk->dev], vkwin->surface,
 				       &(vkwin->sfmt_nb), vkwin->surf_fmt);
+  /* only consider the plain SRGB-nonlinear colorspace and stop at the
+     first match: some WSI (seen on Wayland with VK_EXT_swapchain_colorspace)
+     report the same formats again under several extended/HDR colorspaces
+     (e.g. HDR10 ST.2084); without this filter the loop kept overwriting
+     format/color_space all the way to the last matching entry, landing
+     on whichever colorspace happened to be listed last instead of the
+     standard one - mlx writes plain SDR bytes and has no HDR/color
+     management support, so any other colorspace makes the image look
+     badly over/under-exposed */
   vkwin->format = -1;
   i = 0;
-  while (i < vkwin->sfmt_nb)
+  while (i < vkwin->sfmt_nb && vkwin->format == -1)
     {
-      // printf("surface formats - id: %d - fmt %d colspc %d\n", i, (vkwin->surf_fmt+i)->format, (vkwin->surf_fmt+i)->colorSpace);
-      if ((vkwin->surf_fmt+i)->format == VK_FORMAT_UNDEFINED ||
-	  (vkwin->surf_fmt+i)->format == VK_FORMAT_B8G8R8A8_UNORM )
+      if ((vkwin->surf_fmt+i)->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR &&
+	  ((vkwin->surf_fmt+i)->format == VK_FORMAT_UNDEFINED ||
+	   (vkwin->surf_fmt+i)->format == VK_FORMAT_B8G8R8A8_UNORM))
 	{
 	  vkwin->format = VK_FORMAT_B8G8R8A8_UNORM;
 	  vkwin->color_space = (vkwin->surf_fmt+i)->colorSpace;
 	}
-      if (vkwin->format == -1 && ((vkwin->surf_fmt+i)->format
-				  == VK_FORMAT_B8G8R8A8_SRGB))
+      i ++;
+    }
+  i = 0;
+  while (i < vkwin->sfmt_nb && vkwin->format == -1)
+    {
+      if ((vkwin->surf_fmt+i)->colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR &&
+	  (vkwin->surf_fmt+i)->format == VK_FORMAT_B8G8R8A8_SRGB)
 	{
 	  vkwin->format = VK_FORMAT_B8G8R8A8_SRGB;
 	  vkwin->color_space = (vkwin->surf_fmt+i)->colorSpace;
 	}
       i ++;
     }
-  // printf("=> selected fmt %d - colspc %d\n", vkwin->format, vkwin->color_space);
 
   /* then capabilities */
   if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vk->devices[vk->dev],

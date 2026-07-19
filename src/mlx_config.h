@@ -4,15 +4,16 @@
 #define MLX_CONFIG_H
 
 
-#define	MLX_BACKEND_XCB	0
-/* possibles other backends : Wayland, MS-Windows, Apple-NSWindow ... */
+#define	MLX_BACKEND_XCB		0
+#define	MLX_BACKEND_WAYLAND	1
+/* possibles other backends : MS-Windows, Apple-NSWindow ... */
 
 #define	MLX_GPU_VULKAN	0
 /* possibles other GPUs : OpenGL, Metal ... */
 
 
 
-/* overridable with -D in Makefile ? */
+/* overridable with -D in Makefile : make BACKEND=wayland */
 
 #ifndef MLX_BACKEND
  #define	MLX_BACKEND	MLX_BACKEND_XCB

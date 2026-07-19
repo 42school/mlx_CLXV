@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mlx"
-version = "2.2"
+dynamic = ["version"]
 description = "A simple window interface library for students."
 readme = "README.md"
 authors = [
@@ -15,6 +15,12 @@ dependencies = []
 
 [tool.setuptools]
 include-package-data = true
+
+# read from the repo root's `version` file (copied in by the Makefile's
+# pypkg target before this runs) instead of duplicating the version
+# string here, so it can't drift out of sync between the two
+[tool.setuptools.dynamic]
+version = {file = "version"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
