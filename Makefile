@@ -30,7 +30,19 @@
 
 BACKEND?=xcb
 
+UNAME_S:=$(shell uname -s)
+
+# macOS's native shared-library convention is .dylib (built with
+# -dynamiclib, not -shared); test/Makefile links against whichever of
+# these actually gets built here
+ifeq ($(UNAME_S),Darwin)
+NAME=libmlx.dylib
+SHARED_FLAG=-dynamiclib -install_name @rpath/libmlx.dylib
+else
 NAME=libmlx.so
+SHARED_FLAG=-shared
+endif
+
 SRC_GENERIC=src/mlx_init.c src/mlx_window.c src/mlx_image.c src/mlx_do_sync.c src/mlx_loop.c \
 	src/mlx_key_hook.c src/mlx_mouse_hook.c src/mlx_expose_hook.c src/mlx_loop_hook.c \
 	src/mlx_hook.c src/mlx_be_gpu_hooks.c src/mlx_xpm.c src/mlx_png.c src/mlx_string_put.c \
@@ -55,8 +67,6 @@ SRC_APPKIT=src/backend/mlx__appkit_init.m src/backend/mlx__appkit_window.m \
 	src/backend/mlx__appkit_extra.m
 SRC_VULKAN=src/gpu/mlx___vulkan_init.c src/gpu/mlx___vulkan_window.c src/gpu/mlx___vulkan_draw.c \
 	src/gpu/mlx___vulkan_image.c
-
-UNAME_S:=$(shell uname -s)
 
 SRC=$(SRC_GENERIC)
 ifeq ($(BACKEND),appkit)
@@ -224,7 +234,7 @@ src/backend/mlx__wayland_decoration_protocol.c: $(DECORATION_XML) src/backend/ml
 
 $(NAME): $(OBJ)
 	@echo "Building library..."
-	$(CC) -shared -o $(NAME) $(CFLAGS) $(LDFLAGS) $(OBJ) $(LIBS)
+	$(CC) $(SHARED_FLAG) -o $(NAME) $(CFLAGS) $(LDFLAGS) $(OBJ) $(LIBS)
 
 pypkg: $(NAME) pybuild.sh
 	@echo "Building Python package"

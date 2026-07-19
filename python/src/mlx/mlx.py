@@ -6,12 +6,16 @@
 
 from ctypes import *
 import os
+import sys
 
 class Mlx:
 
   def __init__(self):
     module_dir = os.path.dirname(os.path.abspath(__file__))
-    self.so_file = os.path.join(module_dir, "libmlx.so")
+    # the AppKit backend's Makefile builds libmlx.dylib (macOS's native
+    # shared-library convention), every other backend builds libmlx.so
+    libname = "libmlx.dylib" if sys.platform == "darwin" else "libmlx.so"
+    self.so_file = os.path.join(module_dir, libname)
     self.mlx_func = CDLL(self.so_file)
     self._python_ref_std = {}
     self._python_ref_gen = {}

@@ -1,6 +1,8 @@
 # build artifacts
 *.o
 *.so
+*.dylib
+*.dSYM/
 *~
 
 # written by a standalone ./configure.sh run, remembers the auto-detected
