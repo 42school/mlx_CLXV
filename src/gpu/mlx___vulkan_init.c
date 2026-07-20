@@ -10,6 +10,20 @@
 #include	"mlx___vulkan_internal.h"
 #include	"mlx___vulkan_shaders_code.h"
 
+#ifdef __APPLE__
+# include	<errno.h>
+
+/* reallocarray() is a glibc/BSD extension, not part of macOS's libc */
+static void	*reallocarray(void *ptr, size_t nmemb, size_t size)
+{
+  if (nmemb != 0 && size > ((size_t)-1) / nmemb)
+    {
+      errno = ENOMEM;
+      return (NULL);
+    }
+  return (realloc(ptr, nmemb * size));
+}
+#endif
 
 unsigned char mlx___vulkan_order[5] = { 4, 1, 0, 2, 3 };
 
@@ -260,7 +274,7 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
     return (mlx___vulkan_init_error(mxvk, "can't malloc", 0));
   bzero(mxvk, sizeof(*mxvk));
   
-  if ( (mxvk->inst_extensions = malloc(2 * sizeof(*mxvk->inst_extensions)))
+  if ( (mxvk->inst_extensions = malloc(3 * sizeof(*mxvk->inst_extensions)))
        == NULL )
     return (mlx___vulkan_init_error(mxvk, "can't malloc", 0));
   if ( (mxvk->validation_layer = malloc(1 * sizeof(*mxvk->validation_layer)))
@@ -278,8 +292,18 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
 #elif defined MLX_BACKEND && MLX_BACKEND == MLX_BACKEND_WAYLAND
   mxvk->inst_extensions[1] = "VK_KHR_wayland_surface"; // VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME
   nb_extensions = 2;
+#elif defined MLX_BACKEND && MLX_BACKEND == MLX_BACKEND_APPKIT
+  mxvk->inst_extensions[1] = "VK_EXT_metal_surface"; // VK_EXT_METAL_SURFACE_EXTENSION_NAME
+  nb_extensions = 2;
+  /* MoltenVK is a non-conformant "portability" ICD: since Vulkan Loader
+     1.3.216 it is only enumerated (and vkCreateInstance only succeeds)
+     when this extension is enabled and the matching instance flag is
+     set below, otherwise vkCreateInstance fails with
+     VK_ERROR_INCOMPATIBLE_DRIVER */
+  mxvk->inst_extensions[2] = "VK_KHR_portability_enumeration";
+  nb_extensions = 3;
 #endif
-  
+
   mxvk->app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
   mxvk->app_info.pNext = NULL;
   mxvk->app_info.pApplicationName = "mlx___vulkan";
@@ -292,6 +316,9 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
   inst_crea_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   inst_crea_info.pNext = NULL;
   inst_crea_info.flags = 0;
+#if defined MLX_BACKEND && MLX_BACKEND == MLX_BACKEND_APPKIT
+  inst_crea_info.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
   inst_crea_info.pApplicationInfo = &(mxvk->app_info);
   inst_crea_info.enabledExtensionCount = nb_extensions;
   inst_crea_info.ppEnabledExtensionNames = mxvk->inst_extensions;

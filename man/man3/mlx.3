@@ -109,13 +109,16 @@ All other MiniLibX functions are described in the following man pages:
 .SH LINKING MiniLibX
 To use MiniLibX functions, you may -or not- need to link
 your software with several libraries, including the MiniLibX library itself.
-On Unix/Linux, depending on the specific operating system, either just using
+On Unix/Linux with the XCB backend (the default), either just using
 .B -lmlx
 works, or you need to add
 .B -lxcb -lxcb-keysyms -lvulkan -lz -lbsd
 \&.
-On MacOS, the dynamic Metal library will find on its own the missing components:
-.B -lmlx
+On Unix/Linux with the Wayland backend, add
+.B -lwayland-client -lwayland-cursor -lxkbcommon -lvulkan -lz
+instead.
+On MacOS (AppKit backend), add
+.B -framework Cocoa -framework QuartzCore -framework ApplicationServices -lvulkan -lz
 \&.
 
 You may also need to specify the path to these libraries, using the
@@ -133,4 +136,4 @@ a non-null pointer is returned as a connection identifier.
 mlx_new_window(3), mlx_pixel_put(3), mlx_new_image(3), mlx_loop(3), mlx_extra(3)
 
 .SH AUTHOR
-Copyright ol@ - 2002-2025 - Olivier Crouzet
+Copyright ol@ - 2000-2026 - Olivier Crouzet

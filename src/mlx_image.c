@@ -40,7 +40,7 @@ void	*mlx_new_image(mlx_t *mlx, unsigned int size_x, unsigned int size_y)
 }
 
 
-void	mlx_destroy_image(mlx_t *mlx, mlx_img_t *img)
+int	mlx_destroy_image(mlx_t *mlx, mlx_img_t *img)
 {
   mlx_gpu_hooks_param_t		gpup;
 
@@ -49,6 +49,7 @@ void	mlx_destroy_image(mlx_t *mlx, mlx_img_t *img)
   gpup.gpu_img = img->gpu_img;
   MLX_EXISTS_I(mlx_gpu_hooks[mlx->gpu_type].image_release, &gpup);
   free(img);
+  return (0);
 }
 
 

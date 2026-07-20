@@ -164,8 +164,9 @@ unsigned char	*mlx_get_data_addr(mlx_img_t *img_ptr,
 				   unsigned int *size_line,
 				   unsigned int *format);
 int		mlx_string_put(void *mlx_ptr, void *win_ptr,
-			       int x, int y, int color, char *string);
-void		mlx_destroy_image(mlx_t *mlx, mlx_img_t *img);
+			       unsigned int x, unsigned int y,
+			       unsigned int color, char *string);
+int		mlx_destroy_image(mlx_t *mlx, mlx_img_t *img);
 int		mlx_release(mlx_t *mlx);
 
 #endif /* MLX_INTERNAL_H */

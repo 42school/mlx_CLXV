@@ -27,4 +27,4 @@ where = ["src"]
 include = ["mlx*"]
 
 [tool.setuptools.package-data]
-mlx = ["*.so", "docs/*", "test/*"]
+mlx = ["*.so", "*.dylib", "docs/*", "test/*"]

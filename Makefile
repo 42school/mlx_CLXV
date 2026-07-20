@@ -1,6 +1,7 @@
 # MinilibX Makefile
 # Just run `make` - defaults to the XCB backend.
 # To build the Wayland backend instead: `make BACKEND=wayland`
+# To build the macOS/AppKit backend instead: `make BACKEND=appkit`
 #
 # Not sure which backend your system can build, or want one picked for
 # you automatically? Run `./configure.sh` (standalone, not through make)
@@ -29,7 +30,19 @@
 
 BACKEND?=xcb
 
+UNAME_S:=$(shell uname -s)
+
+# macOS's native shared-library convention is .dylib (built with
+# -dynamiclib, not -shared); test/Makefile links against whichever of
+# these actually gets built here
+ifeq ($(UNAME_S),Darwin)
+NAME=libmlx.dylib
+SHARED_FLAG=-dynamiclib -install_name @rpath/libmlx.dylib
+else
 NAME=libmlx.so
+SHARED_FLAG=-shared
+endif
+
 SRC_GENERIC=src/mlx_init.c src/mlx_window.c src/mlx_image.c src/mlx_do_sync.c src/mlx_loop.c \
 	src/mlx_key_hook.c src/mlx_mouse_hook.c src/mlx_expose_hook.c src/mlx_loop_hook.c \
 	src/mlx_hook.c src/mlx_be_gpu_hooks.c src/mlx_xpm.c src/mlx_png.c src/mlx_string_put.c \
@@ -48,13 +61,39 @@ SRC_WAYLAND=src/backend/mlx__wayland_init.c src/backend/mlx__wayland_window.c \
 SRC_WAYLAND_POINTER_WARP=src/backend/mlx__wayland_pointer_warp_protocol.c
 SRC_WAYLAND_CONSTRAINTS=src/backend/mlx__wayland_constraints_protocol.c
 SRC_WAYLAND_DECORATION=src/backend/mlx__wayland_decoration_protocol.c
+SRC_APPKIT=src/backend/mlx__appkit_init.m src/backend/mlx__appkit_window.m \
+	src/backend/mlx__appkit_util.m src/backend/mlx__appkit_event.m \
+	src/backend/mlx__appkit_hook.m src/backend/mlx__appkit_flush.m \
+	src/backend/mlx__appkit_extra.m
 SRC_VULKAN=src/gpu/mlx___vulkan_init.c src/gpu/mlx___vulkan_window.c src/gpu/mlx___vulkan_draw.c \
 	src/gpu/mlx___vulkan_image.c
 
 SRC=$(SRC_GENERIC)
-ifeq ($(BACKEND),wayland)
+ifeq ($(BACKEND),appkit)
+SRC+=$(SRC_APPKIT) $(SRC_VULKAN)
+override CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_APPKIT
+LIBS_BACKEND=-framework Cocoa -framework QuartzCore -framework ApplicationServices
+ifeq ($(UNAME_S),Darwin)
+# macOS has no single standard Vulkan install location (unlike Linux
+# distro packages): the LunarG SDK sets $VULKAN_SDK (via its
+# setup-env.sh); otherwise, if Homebrew is installed, ask it directly
+# for its prefix with `brew --prefix` rather than guessing a path (its
+# default differs by CPU architecture, and can be customized besides)
+BREW_PREFIX:=$(shell command -v brew >/dev/null 2>&1 && brew --prefix 2>/dev/null)
+VULKAN_HEADERS_CANDIDATES:=$(VULKAN_SDK) $(if $(BREW_PREFIX),$(BREW_PREFIX)/opt/vulkan-headers $(BREW_PREFIX))
+VULKAN_LOADER_CANDIDATES:=$(VULKAN_SDK) $(if $(BREW_PREFIX),$(BREW_PREFIX)/opt/vulkan-loader $(BREW_PREFIX))
+VULKAN_HEADERS_PREFIX:=$(firstword $(foreach p,$(VULKAN_HEADERS_CANDIDATES),$(if $(wildcard $(p)/include/vulkan/vulkan.h),$(p))))
+VULKAN_LOADER_PREFIX:=$(firstword $(foreach p,$(VULKAN_LOADER_CANDIDATES),$(if $(wildcard $(p)/lib/libvulkan.dylib),$(p))))
+ifneq ($(VULKAN_HEADERS_PREFIX),)
+override CFLAGS+=-I$(VULKAN_HEADERS_PREFIX)/include
+endif
+ifneq ($(VULKAN_LOADER_PREFIX),)
+override LDFLAGS+=-L$(VULKAN_LOADER_PREFIX)/lib -Wl,-rpath,$(VULKAN_LOADER_PREFIX)/lib
+endif
+endif
+else ifeq ($(BACKEND),wayland)
 SRC+=$(SRC_WAYLAND) $(SRC_VULKAN)
-CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_WAYLAND
+override CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_WAYLAND
 LIBS_BACKEND=-lwayland-client -lwayland-cursor -lxkbcommon
 WAYLAND_PROTOCOLS_DIR:=$(shell pkg-config --variable=pkgdatadir wayland-protocols)
 XDG_SHELL_XML:=$(WAYLAND_PROTOCOLS_DIR)/stable/xdg-shell/xdg-shell.xml
@@ -65,7 +104,7 @@ XDG_SHELL_XML:=$(WAYLAND_PROTOCOLS_DIR)/stable/xdg-shell/xdg-shell.xml
 POINTER_WARP_XML:=$(WAYLAND_PROTOCOLS_DIR)/staging/pointer-warp/pointer-warp-v1.xml
 ifneq ($(wildcard $(POINTER_WARP_XML)),)
 SRC+=src/backend/mlx__wayland_pointer_warp_protocol.c
-CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_WARP
+override CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_WARP
 endif
 # pointer-constraints (lock + set_cursor_position_hint + unlock) is a
 # much older/more broadly supported fallback for mlx_mouse_move() than
@@ -73,7 +112,7 @@ endif
 CONSTRAINTS_XML:=$(WAYLAND_PROTOCOLS_DIR)/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml
 ifneq ($(wildcard $(CONSTRAINTS_XML)),)
 SRC+=$(SRC_WAYLAND_CONSTRAINTS)
-CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
+override CFLAGS+=-DMLX_WAYLAND_HAVE_POINTER_CONSTRAINTS
 endif
 # xdg-decoration is what lets a compositor draw a title bar/borders for
 # a plain xdg-shell window; without it a window stays undecorated if
@@ -81,15 +120,22 @@ endif
 DECORATION_XML:=$(WAYLAND_PROTOCOLS_DIR)/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
 ifneq ($(wildcard $(DECORATION_XML)),)
 SRC+=$(SRC_WAYLAND_DECORATION)
-CFLAGS+=-DMLX_WAYLAND_HAVE_DECORATION
+override CFLAGS+=-DMLX_WAYLAND_HAVE_DECORATION
 endif
 else
 SRC+=$(SRC_XCB) $(SRC_VULKAN)
-CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_XCB
+override CFLAGS+=-DMLX_BACKEND=MLX_BACKEND_XCB
 LIBS_BACKEND=-lxcb -lxcb-keysyms -lbsd
 endif
 
-OBJ=$(SRC:.c=.o)
+OBJ=$(patsubst %.m,%.o,$(SRC:.c=.o))
+
+# explicit rule for the AppKit backend's Objective-C sources (MRC, not
+# ARC: plain C structs in mlx__appkit_internal.h hold raw object
+# pointers) - overrides Make's built-in .m.o rule, which uses $(OBJC)/
+# $(OBJCFLAGS) instead of our own $(CC)/$(CFLAGS)
+%.o: %.m
+	$(CC) $(CFLAGS) -fno-objc-arc -c -o $@ $<
 
 ifeq ($(BACKEND),wayland)
 # every wayland source transitively includes the generated xdg-shell
@@ -110,8 +156,14 @@ endif
 VK_DEBUG=
 
 INCLUDES=-I./src
-CFLAGS+= $(INCLUDES) $(VK_DEBUG) -fPIC -Wall -O3
-LDFLAGS+=
+# 'override' on every CFLAGS/LDFLAGS append in this file (not just this
+# one): without it, a user-supplied `make CFLAGS=...`/`LDFLAGS=...` on
+# the command line would silently replace these appends instead of
+# adding to them - Make only lets '+=' win over a command-line-set
+# variable when the assignment is explicitly marked 'override' (a plain
+# environment variable, e.g. `CFLAGS=... make`, doesn't have this
+# problem: '+=' always builds on top of that regardless)
+override CFLAGS+= $(INCLUDES) $(VK_DEBUG) -fPIC -Wall -O3
 
 CC=clang
 
@@ -144,8 +196,14 @@ endif
 # reports missing dependencies - a stale/skipped run here would let a
 # broken environment silently fall through to a wayland-scanner/clang
 # failure instead of configure's clear diagnostic
+#
+# CFLAGS/LDFLAGS are passed explicitly (not just inherited) because Make
+# only auto-exports a variable to a recipe's environment when it is
+# untouched command-line/environment origin - the 'override CFLAGS+=...'
+# lines above mean this combined value would otherwise never reach
+# configure.sh's own $CFLAGS/$LDFLAGS-based header/lib checks
 config:
-	BACKEND=$(BACKEND) ./configure.sh
+	BACKEND=$(BACKEND) CFLAGS='$(CFLAGS)' LDFLAGS='$(LDFLAGS)' ./configure.sh
 
 # xdg-shell is the only Wayland protocol extension needed (window
 # management); its client bindings are generated at build time from
@@ -176,7 +234,7 @@ src/backend/mlx__wayland_decoration_protocol.c: $(DECORATION_XML) src/backend/ml
 
 $(NAME): $(OBJ)
 	@echo "Building library..."
-	$(CC) -shared -o $(NAME) $(CFLAGS) $(LDFLAGS) $(OBJ) $(LIBS)
+	$(CC) $(SHARED_FLAG) -o $(NAME) $(CFLAGS) $(LDFLAGS) $(OBJ) $(LIBS)
 
 pypkg: $(NAME) pybuild.sh
 	@echo "Building Python package"
@@ -187,10 +245,10 @@ pypkg: $(NAME) pybuild.sh
 	cp python/dist/mlx*.whl .
 
 # wildcarded on directory rather than enumerated from the SRC_* lists
-# above, on purpose: a future backend/GPU (say src/backend/mlx__nswindow_*.c
-# + src/gpu/mlx___metal_*.c) is cleaned up for free, with nothing to add
-# here - same for src/backend/*_protocol.{h,c}, the generated Wayland
-# protocol bindings, whatever protocols get added later
+# above, on purpose: a future backend/GPU (say a Win32 backend, or a
+# non-Vulkan GPU path) is cleaned up for free, with nothing to add here -
+# same for src/backend/*_protocol.{h,c}, the generated Wayland protocol
+# bindings, whatever protocols get added later
 clean:
 	rm -rf $(NAME) src/*.o src/backend/*.o src/gpu/*.o \
 		src/backend/*_protocol.h src/backend/*_protocol.c \

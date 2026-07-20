@@ -5,6 +5,8 @@
 #ifndef MLX___VULKAN_INTERNAL_H
 #define MLX___VULKAN_INTERNAL_H
 
+#include	<sys/types.h>	/* uint */
+
 #define VK_VER_MAJOR(X) ((((uint32_t)(X))>>22)&0x3FF)
 #define VK_VER_MINOR(X) ((((uint32_t)(X))>>12)&0x3FF)
 #define VK_VER_PATCH(X) (((uint32_t)(X)) & 0xFFF)

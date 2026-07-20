@@ -113,9 +113,28 @@ The third parameter
 .I param
 can be either the image identifier (command #1) or the window identifier (commands #2 and #3).
 
+.SH MACOS (APPKIT BACKEND) CAVEAT
+On the XCB and Wayland backends,
+.B mlx_do_sync
+and
+.B mlx_sync
+alone are enough to get drawing commands actually shown on screen. This is
+.B NOT
+the case on the AppKit backend (macOS): showing a frame there also depends on
+Cocoa's run loop being pumped at least once, which only happens inside
+.B mlx_loop
+(). Calling
+.B mlx_do_sync
+or
+.B mlx_sync
+without ever entering
+.B mlx_loop
+() will flush and complete the drawing commands on the GPU side, but nothing
+will actually appear in the window.
+
 
 .SH SEE ALSO
 mlx(3), mlx_new_window(3), mlx_pixel_put(3), mlx_new_image(3), mlx_loop(3)
 
 .SH AUTHOR
-Copyright ol@ - 2002-2025 - Olivier Crouzet
+Copyright ol@ - 2000-2026 - Olivier Crouzet

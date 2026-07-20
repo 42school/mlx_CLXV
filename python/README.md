@@ -14,12 +14,12 @@ A Python package to access the MinilibX functionalities
 ## Installation
 In your preferred virtual environment:
 ```bash
-pip install mlx_CLXV-2.2-py3-none-any.whl
+pip install mlx_CLXV-*-py3-none-any.whl
 ```
 
 ## Quick Start
 ```python
-from Mlx import Mlx
+from mlx import Mlx
 
 def mymouse(button, x, y, mystuff):
     print(f"Got mouse event! button {button} at {x},{y}.")
