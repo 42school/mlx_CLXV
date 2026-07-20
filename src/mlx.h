@@ -5,7 +5,7 @@
 ** Login   <ol@42.fr>
 ** 
 ** Started on  Mon Jul 31 16:37:50 2000 Olivier Crouzet
-** Last update Tue Jun 25 16:23:28 2025 Olivier Crouzet
+** Last update Mon Jul 20 16:23:28 2026 Olivier Crouzet
 */
 
 /*
@@ -13,7 +13,7 @@
 */
 
 
-/* mlx_CLXV version 2.3 */
+/* mlx_CLXV version 2.4 */
 
 /*
 **

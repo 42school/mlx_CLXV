@@ -26,4 +26,4 @@ Also, the include file mlx.h contains the detailed interface for the MLX library
 The Python directory contains a Mlx class that can be imported in your Python program, and provides access to all library functions described in mlx.h . Some functions require int references to pass back some values, in Python this is converted into the class function returning a tuple. Use the `mlx-*-py3-none-any.whl` package produced after `make` (in the repo root), with the following command `pip install mlx-*-py3-none-any.whl` in your virtualenv.
 
 
-Created by Olivier Crouzet - 2000-2025
+Created by Olivier Crouzet - 2000-2026
