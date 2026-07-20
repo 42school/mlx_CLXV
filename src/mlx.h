@@ -74,6 +74,12 @@
 **  own minimal title bar instead, with a close button and support for
 **  moving the window by dragging it. The AppKit backend always uses the
 **  OS's native window chrome, and windows are not resizable.
+** On XCB and Wayland, mlx_do_sync()/mlx_sync() alone are enough to get
+**  drawing commands actually shown on screen. This is NOT the case on
+**  the AppKit backend: showing a frame there depends on Cocoa's run
+**  loop being pumped at least once, which only happens inside mlx_loop()
+**  - calling mlx_do_sync()/mlx_sync() without ever entering mlx_loop()
+**  will not make anything appear in the window on macOS.
 **
 */
 

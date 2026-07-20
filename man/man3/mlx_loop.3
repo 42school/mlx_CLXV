@@ -73,6 +73,17 @@ the connection identifier
 (see the
 .B mlx manual).
 
+On macOS (AppKit backend), entering
+.B mlx_loop
+() is also required for anything to actually appear on screen:
+.B mlx_do_sync
+()/
+.B mlx_sync
+() alone are not enough there, unlike on the XCB and Wayland backends
+(see
+.B mlx_extra(3)
+).
+
 You can assign different functions to the three following events:
 .br
 - A key is released
