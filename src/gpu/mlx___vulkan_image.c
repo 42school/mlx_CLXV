@@ -294,10 +294,12 @@ void	*mlx___vulkan_img_create_internal(mlx___vulkan_t *vk,
 void	*mlx___vulkan_img_create(mlx_gpu_hooks_param_t *param)
 {
   mlx___vulkan_img_t	*vkimg;
-  
+
   vkimg = mlx___vulkan_img_create_internal((mlx___vulkan_t *)(param->gpu),
 					   param->dst.width,
 					   param->dst.height);
+  if (vkimg == NULL)
+    return (NULL);
   param->data = vkimg->data;
   // format for mlx top level - 0 = B8G8R8A8; 1 = A8R8G8B8;
   param->format = 0;

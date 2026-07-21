@@ -90,7 +90,7 @@ typedef struct		mlx___vulkan_img_s
 
 typedef struct		mlx___vulkan_win_frame_s
 {
-  VkCommandBuffer	cmd_buff[2];
+  VkCommandBuffer	cmd_buff[1];
   VkFence			fence[1];
   VkDescriptorSet	descriptor_set[VK_NB_DRAW];
 } mlx___vulkan_win_frame_t;

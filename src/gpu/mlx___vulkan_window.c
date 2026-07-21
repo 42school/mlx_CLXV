@@ -638,8 +638,7 @@ static VkResult	mlx___vulkan_command_buffer_alloc(mlx___vulkan_t *vk,
   cmdbuff_alloc_info.pNext = NULL;
   cmdbuff_alloc_info.commandPool = vk->command_pool;
   cmdbuff_alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  // one for render passes, one for backup frame
-  cmdbuff_alloc_info.commandBufferCount = 2;
+  cmdbuff_alloc_info.commandBufferCount = 1;
 
   return (vkAllocateCommandBuffers(vk->vk_device, &cmdbuff_alloc_info,
 				   vkwin->frames[vkwin->cur_frame].cmd_buff));

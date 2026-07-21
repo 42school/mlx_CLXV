@@ -266,6 +266,7 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
   unsigned int			qf_nb;
   int				qf_candidate;
   int				qf_final;
+  unsigned int			best_order;
   int				nb_extensions;
   int				i;
   int				j;
@@ -359,8 +360,15 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
     return (mlx___vulkan_init_error(mxvk, "vkEnumPhysDevices", vkerr));
   i = 0;
   //printf("nb vulkan devices : %d\n", mxvk->devices_nb);
-  mxvk->dev = 0; // at least there is one
+  mxvk->dev = 0; // overwritten below once a device with a usable queue is found
   qf_final = -1;
+  /* worse than any real mlx___vulkan_order[] entry: don't let an
+     unvalidated device (no matching queue family yet) act as the
+     baseline other devices are compared against - a device 0 that
+     happens to report the best deviceType but exposes no suitable
+     queue family must not block a perfectly usable device further
+     down the list from being selected */
+  best_order = sizeof(mlx___vulkan_order) / sizeof(mlx___vulkan_order[0]);
   while (i < mxvk->devices_nb)
     {
       vkGetPhysicalDeviceProperties(mxvk->devices[i], mxvk->devices_prop+i);
@@ -387,13 +395,13 @@ void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param)
 	    qf_candidate = j;
 	}
       free(qfp);
-      
-      if (mlx___vulkan_order[(mxvk->devices_prop+i)->deviceType] <=
-	  mlx___vulkan_order[(mxvk->devices_prop+mxvk->dev)->deviceType] &&
-	  qf_candidate >= 0)
+
+      if (qf_candidate >= 0 &&
+	  mlx___vulkan_order[(mxvk->devices_prop+i)->deviceType] <= best_order)
 	{
 	  mxvk->dev = i;
 	  qf_final = qf_candidate;
+	  best_order = mlx___vulkan_order[(mxvk->devices_prop+i)->deviceType];
 	}
       i ++;
     }
