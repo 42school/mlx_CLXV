@@ -98,9 +98,6 @@ typedef struct		mlx___vulkan_win_frame_s
 typedef struct		mlx___vulkan_draw_list_s
 {
   VkDescriptorSet	*descriptor_set;
-  VkBuffer			uniform_buffer;
-  VkDeviceMemory	uniform_device_memory;
-  mlx___vulkan_img_uniform_t	*uniform;
   mlx___vulkan_img_uniform_t	staging_uniform;
   int				img_ref_idx;
   int				img_staging_idx;

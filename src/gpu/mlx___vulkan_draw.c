@@ -15,43 +15,28 @@
 static VkResult	mlx___vulkan_desc_write(mlx___vulkan_t *vk,
 					mlx___vulkan_draw_list_t *dl)
 {
-  VkDescriptorBufferInfo	desc_buffer_info;
   VkDescriptorImageInfo		desc_image_info;
-  VkWriteDescriptorSet		desc_write[2];
-  
-  // update (bind) texture sampler & view (and unchanged uniform buffer)
-  
-  desc_buffer_info.buffer = dl->uniform_buffer;
-  desc_buffer_info.offset = 0;
-  desc_buffer_info.range = sizeof(*(dl->uniform));
+  VkWriteDescriptorSet		desc_write;
+
+  // update (bind) texture sampler & view - the per-draw uniform is a
+  // push constant now, nothing left to write for it here
 
   desc_image_info.sampler = ((mlx___vulkan_img_t *)(vk->img_ref[dl->img_ref_idx].item))->texture_sampler;
   desc_image_info.imageView = ((mlx___vulkan_img_t *)(vk->img_ref[dl->img_ref_idx].item))->image_view;
   desc_image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-  desc_write[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  desc_write[0].pNext = NULL;
-  desc_write[0].dstSet = *(dl->descriptor_set);
-  desc_write[0].dstBinding = 0;
-  desc_write[0].dstArrayElement = 0;
-  desc_write[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  desc_write[0].descriptorCount = 1;
-  desc_write[0].pBufferInfo = &desc_buffer_info;
-  desc_write[0].pImageInfo = NULL;
-  desc_write[0].pTexelBufferView = NULL;
+  desc_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  desc_write.pNext = NULL;
+  desc_write.dstSet = *(dl->descriptor_set);
+  desc_write.dstBinding = 1;
+  desc_write.dstArrayElement = 0;
+  desc_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  desc_write.descriptorCount = 1;
+  desc_write.pBufferInfo = NULL;
+  desc_write.pImageInfo = &desc_image_info;
+  desc_write.pTexelBufferView = NULL;
 
-  desc_write[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  desc_write[1].pNext = NULL;
-  desc_write[1].dstSet = *(dl->descriptor_set);
-  desc_write[1].dstBinding = 1;
-  desc_write[1].dstArrayElement = 0;
-  desc_write[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  desc_write[1].descriptorCount = 1;
-  desc_write[1].pBufferInfo = NULL;
-  desc_write[1].pImageInfo = &desc_image_info;
-  desc_write[1].pTexelBufferView = NULL;
-  
-  vkUpdateDescriptorSets(vk->vk_device, 2, desc_write, 0, NULL);
+  vkUpdateDescriptorSets(vk->vk_device, 1, &desc_write, 0, NULL);
   return (VK_SUCCESS);
 }
 
@@ -159,15 +144,16 @@ static int	mlx___vulkan_command_buffer_set_renderpass(mlx___vulkan_t *vk, mlx___
 	  if (vkwin->draw_list[i].img_ref_idx >=0 &&
 	      vk->img_ref[vkwin->draw_list[i].img_ref_idx].active)
 	    {
-	      bcopy(&(vkwin->draw_list[i].staging_uniform),
-		    vkwin->draw_list[i].uniform,
-		    sizeof(*(vkwin->draw_list[i].uniform)));
 	      vkwin->draw_list[i].descriptor_set = frame->descriptor_set+i;
 	      mlx___vulkan_desc_write(vk, vkwin->draw_list + i);
 	      vkCmdBindDescriptorSets(frame->cmd_buff[0],
 				      VK_PIPELINE_BIND_POINT_GRAPHICS,
 				      vk->pipeline_layout, 0, 1,
 				      frame->descriptor_set+i, 0, NULL);
+	      vkCmdPushConstants(frame->cmd_buff[0], vk->pipeline_layout,
+				 VK_SHADER_STAGE_VERTEX_BIT, 0,
+				 sizeof(vkwin->draw_list[i].staging_uniform),
+				 &(vkwin->draw_list[i].staging_uniform));
 	      vkCmdDraw(frame->cmd_buff[0], 6, 1, 0, 0);
 	      img = (mlx___vulkan_img_t *)vk->img_ref[vkwin->draw_list[i].img_ref_idx].item;
 	      img->staging_frame[vkwin->draw_list[i].img_staging_idx] = vkwin->cur_frame;

@@ -104,28 +104,24 @@ static VkResult	mlx___vulkan_pipeline_layout(mlx___vulkan_t *vk)
 {
   VkDescriptorSetLayoutCreateInfo	layout_create_info;
   VkPipelineLayoutCreateInfo		pl_crea_info;
-  VkDescriptorSetLayoutBinding		layout_binding[2];
+  VkDescriptorSetLayoutBinding		layout_binding[1];
+  VkPushConstantRange			push_const_range;
   VkResult				vkerr;
 
-  // first layout: uniform
-  layout_binding[0].binding = 0;
-  layout_binding[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  // only remaining descriptor: the texture sampler - the per-draw
+  // uniform (src/dst rects, color) is now a push constant instead,
+  // see mlx___vulkan_img_uniform_t / VkPushConstantRange below
+  layout_binding[0].binding = 1;
+  layout_binding[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   layout_binding[0].descriptorCount = 1;
-  layout_binding[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  layout_binding[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
   layout_binding[0].pImmutableSamplers = NULL;
-
-  // second layout: texture
-  layout_binding[1].binding = 1;
-  layout_binding[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  layout_binding[1].descriptorCount = 1;
-  layout_binding[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-  layout_binding[1].pImmutableSamplers = NULL;
 
   // create descriptor set layout
   layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   layout_create_info.pNext = NULL;
   layout_create_info.flags = 0;
-  layout_create_info.bindingCount = 2;
+  layout_create_info.bindingCount = 1;
   layout_create_info.pBindings = layout_binding;
 
   if ((vkerr = vkCreateDescriptorSetLayout(vk->vk_device, &layout_create_info,
@@ -133,16 +129,22 @@ static VkResult	mlx___vulkan_pipeline_layout(mlx___vulkan_t *vk)
 					   &(vk->descriptor_set_layout)))
       != VK_SUCCESS)
     return (vkerr);
- 
+
+  // mlx___vulkan_img_uniform_t is 64 bytes, comfortably within the
+  // 128 bytes every Vulkan implementation is required to support
+  push_const_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+  push_const_range.offset = 0;
+  push_const_range.size = sizeof(mlx___vulkan_img_uniform_t);
+
   // then, create pipeline layout
   pl_crea_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pl_crea_info.pNext = NULL;
   pl_crea_info.flags = 0;
   pl_crea_info.setLayoutCount = 1;
   pl_crea_info.pSetLayouts = &(vk->descriptor_set_layout);
-  pl_crea_info.pushConstantRangeCount = 0;
-  pl_crea_info.pPushConstantRanges = NULL;
-  
+  pl_crea_info.pushConstantRangeCount = 1;
+  pl_crea_info.pPushConstantRanges = &push_const_range;
+
   return (vkCreatePipelineLayout(vk->vk_device, &pl_crea_info, NULL,
 				 &(vk->pipeline_layout)));
 }

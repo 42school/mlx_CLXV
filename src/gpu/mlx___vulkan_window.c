@@ -44,18 +44,6 @@ static void	*mlx___vulkan_window_error(mlx___vulkan_t *vk,
       if (vkwin->back_img)
 		mlx___vulkan_img_error(vk, vkwin->back_img, NULL, VK_SUCCESS);
 
-      i = 0;
-      while (i < VK_NB_DRAW)
-		{
-		  if (vkwin->draw_list[i].uniform)
-			vkUnmapMemory(vk->vk_device,
-						  vkwin->draw_list[i].uniform_device_memory);
-		  vkDestroyBuffer(vk->vk_device,
-						  vkwin->draw_list[i].uniform_buffer, NULL);
-		  vkFreeMemory(vk->vk_device,
-					   vkwin->draw_list[i].uniform_device_memory, NULL);
-		  i ++;
-		}
       vkDestroyDescriptorPool(vk->vk_device, vkwin->descriptor_pool, NULL);
 
       i = 0;
@@ -670,7 +658,7 @@ static void *mlx___vulkan_window_frame_init(mlx___vulkan_t *vk, mlx___vulkan_win
 VkResult	mlx___vulkan_window_descriptor(mlx___vulkan_t *vk,
 					       mlx___vulkan_win_t *vkwin)
 {
-  VkDescriptorPoolSize		pool_size[2];
+  VkDescriptorPoolSize		pool_size[1];
   VkDescriptorPoolCreateInfo	pool_crea_info;
   VkDescriptorSetAllocateInfo	set_crea_info;
   VkDescriptorSetLayout		layouts[VK_NB_DRAW];
@@ -681,16 +669,15 @@ VkResult	mlx___vulkan_window_descriptor(mlx___vulkan_t *vk,
   while (i < VK_NB_DRAW)
     layouts[i++] = vk->descriptor_set_layout;
 
-  // create descriptor pool per window
-  pool_size[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  // create descriptor pool per window - only the texture sampler is
+  // still a descriptor, the per-draw uniform is a push constant now
+  pool_size[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
   pool_size[0].descriptorCount = VK_NB_DRAW * VK_NB_FRAMES;
-  pool_size[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  pool_size[1].descriptorCount = VK_NB_DRAW * VK_NB_FRAMES;
 
   pool_crea_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   pool_crea_info.pNext = NULL;
   pool_crea_info.flags = 0;
-  pool_crea_info.poolSizeCount = 2;
+  pool_crea_info.poolSizeCount = 1;
   pool_crea_info.pPoolSizes = pool_size;
   pool_crea_info.maxSets = VK_NB_DRAW * VK_NB_FRAMES;
   if ((vkerr = vkCreateDescriptorPool(vk->vk_device, &pool_crea_info, NULL,
@@ -761,30 +748,12 @@ void	*mlx___vulkan_window(mlx_gpu_hooks_param_t *param)
   /* descriptors and draw list */
   if ((vkerr = mlx___vulkan_window_descriptor(vk, vkwin)) != VK_SUCCESS)
     return (mlx___vulkan_window_error(vk, vkwin, "desctiptors", vkerr));
+  // the per-draw uniform (src/dst rects, color) is pushed via
+  // vkCmdPushConstants at record time now, no buffer needed for it
   i = 0;
   while (i < VK_NB_DRAW)
-    {
-      vkwin->draw_list[i].img_ref_idx = -1;
-      // create associated uniform buffer
-      if ((vkerr =
-	   mlx___vulkan_create_buffer(vk,
-				      sizeof(*(vkwin->draw_list[i].uniform)),
-				      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-				      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-				      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-				      &(vkwin->draw_list[i].uniform_buffer),
-				      &(vkwin->draw_list[i].uniform_device_memory)))
-	  != VK_SUCCESS)
-	return (mlx___vulkan_window_error(vk, vkwin, "uniform buffer", vkerr));
-      if ((vkerr = vkMapMemory(vk->vk_device,
-			       vkwin->draw_list[i].uniform_device_memory, 0,
-			       sizeof(*(vkwin->draw_list[i].uniform)), 0,
-			       (void **)(&(vkwin->draw_list[i].uniform))))
-	  != VK_SUCCESS)
-	return (mlx___vulkan_window_error(vk, vkwin, "VkMapMem uniform", vkerr));
-      i ++;
-    }
-  
+    vkwin->draw_list[i++].img_ref_idx = -1;
+
   if ((vkwin->back_img =
        mlx___vulkan_img_create_internal(vk, vkwin->width, vkwin->height))
       == NULL)
