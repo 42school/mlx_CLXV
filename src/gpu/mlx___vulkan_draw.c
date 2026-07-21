@@ -222,7 +222,7 @@ int	mlx___vulkan_draw_internal(mlx___vulkan_t *vk, mlx___vulkan_win_t *vkwin)
   */
   if (vkwin->pixel_put_img_sync >= 0)
     {
-      mlx___vulkan_img_mem_sync(vk, vkwin->pixel_put_img->data,
+      mlx___vulkan_img_mem_flush(vk, vkwin->pixel_put_img->data,
 				vkwin->pixel_put_img->staging_data[vkwin->pixel_put_img_sync],
 				vkwin->pixel_put_img->staging_device_memory[vkwin->pixel_put_img_sync],
 				vkwin->pixel_put_img->size);
@@ -238,7 +238,7 @@ int	mlx___vulkan_draw_internal(mlx___vulkan_t *vk, mlx___vulkan_win_t *vkwin)
   if (vkAcquireNextImageKHR(vk->vk_device, vkwin->swap_chain, UINT64_MAX,
 			    vkwin->swch_sema[3*vkwin->swch_sema_idx], VK_NULL_HANDLE, &sw_index) != VK_SUCCESS)
     {
-      printf("draw: can't get next sw image\n");
+      fprintf(stderr, "Mlx - Vk: draw: can't get next sw image\n");
       return (1);
     }
   if (vkwin->swch_fence[sw_index] != VK_NULL_HANDLE)

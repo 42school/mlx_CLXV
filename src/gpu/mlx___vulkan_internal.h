@@ -178,7 +178,7 @@ VkResult	mlx___vulkan_create_buffer(mlx___vulkan_t *vk,
 					   VkDeviceMemory *buffer_memory);
 int			mlx___vulkan_ref_img_add(mlx___vulkan_t *vk, mlx___vulkan_img_t *img);
 int			mlx___vulkan_ref_win_add(mlx___vulkan_t *vk, mlx___vulkan_win_t *win);
-void		mlx___vulkan_img_mem_sync(mlx___vulkan_t *vk, void *src, void *dst, VkDeviceMemory dst_gpu, VkDeviceSize size);
+void		mlx___vulkan_img_mem_flush(mlx___vulkan_t *vk, void *src, void *dst, VkDeviceMemory dst_gpu, VkDeviceSize size);
 
 
 #endif /* MLX___VULCAN_INTERNAL_H */
