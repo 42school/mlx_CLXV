@@ -49,6 +49,9 @@ static const struct
   {0x6D, 0xFFC7},   /* F10 */
   {0x67, 0xFFC8},   /* F11 */
   {0x6F, 0xFFC9},   /* F12 */
+  /* 0x3F (fn) is deliberately absent: it has no X11 keysym equivalent,
+     falls through to keysym 0 below - it still fires a press/release,
+     just with an ambiguous keysym value */
 };
 
 unsigned int	mlx__appkit_keysym(unsigned short keycode, unsigned int unichar)
@@ -131,6 +134,26 @@ void	mlx__appkit_on_key(mlx__appkit_win_t *win, NSEvent *event, uint8_t type)
   c = chars.length > 0 ? [chars characterAtIndex:0] : 0;
   mlx__appkit_queue_push(win->ak, win, type,
 			  mlx__appkit_keysym(event.keyCode, (unsigned int)c), 0, 0);
+}
+
+void	mlx__appkit_on_flags_changed(mlx__appkit_win_t *win, NSEvent *event)
+{
+  NSEventModifierFlags	relevant_mask;
+  NSEventModifierFlags	old_flags;
+  NSEventModifierFlags	new_flags;
+
+  relevant_mask = NSEventModifierFlagShift | NSEventModifierFlagControl |
+    NSEventModifierFlagOption | NSEventModifierFlagCommand |
+    NSEventModifierFlagCapsLock | NSEventModifierFlagFunction;
+  old_flags = (NSEventModifierFlags)win->last_modifier_flags & relevant_mask;
+  new_flags = event.modifierFlags & relevant_mask;
+  win->last_modifier_flags = (unsigned long)event.modifierFlags;
+  if ((new_flags & ~old_flags) != 0)
+    mlx__appkit_queue_push(win->ak, win, MLX_AK_EVENT_KEY_PRESS,
+			    mlx__appkit_keysym(event.keyCode, 0), 0, 0);
+  else if ((old_flags & ~new_flags) != 0)
+    mlx__appkit_queue_push(win->ak, win, MLX_AK_EVENT_KEY_RELEASE,
+			    mlx__appkit_keysym(event.keyCode, 0), 0, 0);
 }
 
 static mlx__appkit_event_t	*mlx__appkit_queue_pop(mlx__appkit_t *ak)

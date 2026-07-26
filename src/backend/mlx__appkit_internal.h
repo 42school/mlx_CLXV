@@ -79,6 +79,7 @@ struct				mlx__appkit_win_s
   int				ptr_x;
   int				ptr_y;
   int				configured;
+  unsigned long			last_modifier_flags;   /* NSEventModifierFlags, for flagsChanged: */
   int				(*hook[MLX_APPKIT_MAX_EVENT])();
   void				*hook_param[MLX_APPKIT_MAX_EVENT];
 };
@@ -100,6 +101,11 @@ void	mlx__appkit_on_button(mlx__appkit_win_t *win, NSEvent *event, uint8_t type)
 void	mlx__appkit_on_motion(mlx__appkit_win_t *win, NSEvent *event);
 void	mlx__appkit_on_scroll(mlx__appkit_win_t *win, NSEvent *event);
 void	mlx__appkit_on_key(mlx__appkit_win_t *win, NSEvent *event, uint8_t type);
+/* modifier-only keys (Shift, Control, Option, Command, CapsLock, fn)
+   never generate keyDown:/keyUp: on macOS, only flagsChanged: - this
+   synthesizes the matching MLX_AK_EVENT_KEY_PRESS/RELEASE from the
+   modifierFlags transition */
+void	mlx__appkit_on_flags_changed(mlx__appkit_win_t *win, NSEvent *event);
 #endif
 
 #endif /* MLX__APPKIT_INTERNAL_H */

@@ -96,8 +96,8 @@ typedef struct		mlx_gpu_hooks_s
   void			*(*init)(mlx_gpu_hooks_param_t *param);
   void			(*release)(mlx_gpu_hooks_param_t *param);
   void			*(*window)(mlx_gpu_hooks_param_t *param);
-  void			*(*window_clear)(mlx_gpu_hooks_param_t *param);
-  void			*(*window_pixel)(mlx_gpu_hooks_param_t *param);
+  int			(*window_clear)(mlx_gpu_hooks_param_t *param);
+  int			(*window_pixel)(mlx_gpu_hooks_param_t *param);
   void			(*window_release)(mlx_gpu_hooks_param_t *param);
   void			*(*image)(mlx_gpu_hooks_param_t *param);
   int			(*image_put)(mlx_gpu_hooks_param_t *param);

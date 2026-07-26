@@ -1,7 +1,7 @@
 
 #version 460
 
-layout(binding = 0) uniform uniform_object {
+layout(push_constant) uniform uniform_object {
     vec2 src_full;
     vec2 src_pos;
     vec2 src_size;

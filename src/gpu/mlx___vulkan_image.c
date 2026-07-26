@@ -294,10 +294,12 @@ void	*mlx___vulkan_img_create_internal(mlx___vulkan_t *vk,
 void	*mlx___vulkan_img_create(mlx_gpu_hooks_param_t *param)
 {
   mlx___vulkan_img_t	*vkimg;
-  
+
   vkimg = mlx___vulkan_img_create_internal((mlx___vulkan_t *)(param->gpu),
 					   param->dst.width,
 					   param->dst.height);
+  if (vkimg == NULL)
+    return (NULL);
   param->data = vkimg->data;
   // format for mlx top level - 0 = B8G8R8A8; 1 = A8R8G8B8;
   param->format = 0;
@@ -367,12 +369,16 @@ int	mlx___vulkan_img_put_internal(mlx___vulkan_t *vk,
   dl->img_staging_idx = myslot;
   vkimg->staging_status[myslot] = 1;
   
-  mlx___vulkan_img_mem_sync(vk, vkimg->data, vkimg->staging_data[myslot], vkimg->staging_device_memory[myslot], vkimg->size);
+  mlx___vulkan_img_mem_flush(vk, vkimg->data, vkimg->staging_data[myslot], vkimg->staging_device_memory[myslot], vkimg->size);
   return (0);
 }
 
 
-void mlx___vulkan_img_mem_sync(mlx___vulkan_t *vk, void *src, void *dst, VkDeviceMemory dst_gpu, VkDeviceSize size)
+/* copies src (CPU-side pixel data) into dst (a host-mapped staging
+   buffer) and flushes that mapped range so the writes become visible
+   to the device - the staging memory is host-visible but not
+   necessarily host-coherent, so this is a flush, not a memory barrier */
+void mlx___vulkan_img_mem_flush(mlx___vulkan_t *vk, void *src, void *dst, VkDeviceMemory dst_gpu, VkDeviceSize size)
 {
   VkMappedMemoryRange		mmr;
 

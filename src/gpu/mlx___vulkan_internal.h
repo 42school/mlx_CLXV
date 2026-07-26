@@ -90,7 +90,7 @@ typedef struct		mlx___vulkan_img_s
 
 typedef struct		mlx___vulkan_win_frame_s
 {
-  VkCommandBuffer	cmd_buff[2];
+  VkCommandBuffer	cmd_buff[1];
   VkFence			fence[1];
   VkDescriptorSet	descriptor_set[VK_NB_DRAW];
 } mlx___vulkan_win_frame_t;
@@ -98,9 +98,6 @@ typedef struct		mlx___vulkan_win_frame_s
 typedef struct		mlx___vulkan_draw_list_s
 {
   VkDescriptorSet	*descriptor_set;
-  VkBuffer			uniform_buffer;
-  VkDeviceMemory	uniform_device_memory;
-  mlx___vulkan_img_uniform_t	*uniform;
   mlx___vulkan_img_uniform_t	staging_uniform;
   int				img_ref_idx;
   int				img_staging_idx;
@@ -178,7 +175,7 @@ VkResult	mlx___vulkan_create_buffer(mlx___vulkan_t *vk,
 					   VkDeviceMemory *buffer_memory);
 int			mlx___vulkan_ref_img_add(mlx___vulkan_t *vk, mlx___vulkan_img_t *img);
 int			mlx___vulkan_ref_win_add(mlx___vulkan_t *vk, mlx___vulkan_win_t *win);
-void		mlx___vulkan_img_mem_sync(mlx___vulkan_t *vk, void *src, void *dst, VkDeviceMemory dst_gpu, VkDeviceSize size);
+void		mlx___vulkan_img_mem_flush(mlx___vulkan_t *vk, void *src, void *dst, VkDeviceMemory dst_gpu, VkDeviceSize size);
 
 
 #endif /* MLX___VULCAN_INTERNAL_H */
