@@ -459,17 +459,17 @@ class Mlx:
         result: int = self.mlx_func.mlx_mouse_show(mlx_ptr)
         return result
 
-    def mlx_mouse_move(self, mlx_ptr: Optional[int], x: int, y: int) -> int:
+    def mlx_mouse_move(self, win_ptr: Optional[int], x: int, y: int) -> int:
         """Move the mouse cursor to ``(x, y)`` within the window."""
         self.mlx_func.mlx_mouse_move.argtypes = [
             ctypes.c_void_p, ctypes.c_int, ctypes.c_int,
         ]
         self.mlx_func.mlx_mouse_move.restype = ctypes.c_int
-        result: int = self.mlx_func.mlx_mouse_move(mlx_ptr, x, y)
+        result: int = self.mlx_func.mlx_mouse_move(win_ptr, x, y)
         return result
 
     def mlx_mouse_get_pos(
-        self, mlx_ptr: Optional[int]
+        self, win_ptr: Optional[int]
     ) -> Tuple[int, int, int]:
         """Return ``(status, x, y)``, the current mouse position.
 
@@ -482,7 +482,7 @@ class Mlx:
         ]
         self.mlx_func.mlx_mouse_get_pos.restype = ctypes.c_int
         val: int = self.mlx_func.mlx_mouse_get_pos(
-            mlx_ptr, ctypes.byref(x), ctypes.byref(y)
+            win_ptr, ctypes.byref(x), ctypes.byref(y)
         )
         return (val, x.value, y.value)
 
