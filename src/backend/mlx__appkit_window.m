@@ -45,6 +45,10 @@
 - (void)keyDown:(NSEvent *)event { mlx__appkit_on_key(self.mlxWin, event, MLX_AK_EVENT_KEY_PRESS); }
 - (void)keyUp:(NSEvent *)event { mlx__appkit_on_key(self.mlxWin, event, MLX_AK_EVENT_KEY_RELEASE); }
 
+/* Shift/Control/Option/Command/CapsLock/fn pressed or released alone
+   never reach keyDown:/keyUp: on macOS - only this method fires */
+- (void)flagsChanged:(NSEvent *)event { mlx__appkit_on_flags_changed(self.mlxWin, event); }
+
 @end
 
 

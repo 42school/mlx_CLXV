@@ -8,8 +8,8 @@
 void	*mlx___vulkan_init(mlx_gpu_hooks_param_t *param);
 void	mlx___vulkan_destroy(mlx_gpu_hooks_param_t *param);
 void    *mlx___vulkan_window(mlx_gpu_hooks_param_t *param);
-void    *mlx___vulkan_window_clear(mlx_gpu_hooks_param_t *param);
-void    *mlx___vulkan_window_pixel(mlx_gpu_hooks_param_t *param);
+int	mlx___vulkan_window_clear(mlx_gpu_hooks_param_t *param);
+int	mlx___vulkan_window_pixel(mlx_gpu_hooks_param_t *param);
 void    mlx___vulkan_window_destroy(mlx_gpu_hooks_param_t *param);
 void    *mlx___vulkan_img_create(mlx_gpu_hooks_param_t *param);
 int		mlx___vulkan_img_put(mlx_gpu_hooks_param_t *param);
